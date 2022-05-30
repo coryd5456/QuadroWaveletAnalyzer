@@ -47,6 +47,7 @@ scalogram::scalogram(QWidget *parent): QWidget(parent)
 
 
 
+
     LOG("Spectragram event");
     //update();
     //defines the color mapping for the spectragram
@@ -73,7 +74,7 @@ QSize scalogram::minimumSizeHint() const
 
 QSize scalogram::sizeHint() const
 {
-    return QSize(MaxSize, MaxSize);
+    return QSize(MaxSize, MaxSize/2);
 }
 
 //Need to fix this such that it can resize for anyones monitor
@@ -185,34 +186,52 @@ void scalogram::paintEvent(QPaintEvent *) {
         }
 
     }*/
-    int N = 16;
-    float W_C[16][16];
-    float W_S[16][16];
-    float W_X[16];
-    float W_G[16];
 
-    float W_MagSf[16][16];
-    float W_Mfft[16];
-    float W_d = 0;
+    int N = BucketSize;// Size of the data bucket
+    int L = NumFreq;// Number of frequncie to decompose into
+    int M = GaborWidth;// Width of the window
 
-    init_ComplexExp();
-    init_Data();
-    init_GaborWindow();
-    DFT();
-    GaborTransform();
+    init_ComplexExp(W_C,W_S);
+    //for(int n = 0; n < N ; n++){
+    //    LOG("n: ") << 3 << "  W_S: " << W_S[3][4] << "\n";
+    //}
+    init_Data(W_X);
 
-    for (int l = 0; l < N; ++l)
+    //DFT();
+    GaborTransform(W_X,W_C,W_S,W_MagSf);
+
+    for (int l = 0; l < L; ++l)
         {
         //printf("[ ");
-            for (int m = 0; m < N; ++m)
+        LOG("[");
+            for (int m = 0; m < N-M; ++m)
             {
-                simpleColorMap(max_value/4 * W_MagSf[m][l] ,r,g,b);
-                int ivalue = qRgb(r,g,b);
-                image->setPixel(m, l, ivalue);
+                //Need to add in some math to find the largest 10 maximum values and their frequencies.
+                if(W_MagSf[m][l] >= 0.14){
+                    //simpleColorMap(3*(max_value) * W_MagSf[m][l] ,r,g,b);
+                    int ivalue = qRgb(0,255,0);
+                    image->setPixel(m, L-1-l, ivalue);
+                }else{
+                    simpleColorMap(3*(max_value) * W_MagSf[m][l] ,r,g,b);
+                    int ivalue = qRgb(r,g,b);
+                    image->setPixel(m, L-1-l, ivalue);
+                }
+                LOG(W_MagSf[m][l])<< " ";
 
             }
         //printf(" ]\n");
+        LOG("]\n");
+
         }
+    //init_GaborWindow();
+    //init_Data();
+    /*
+    for(int n = 0; n < N ; n++){
+        LOG("n: ") << n << "  W_S: " << W_S[n][4] << "\n";
+    }*/
+    LOG(W_X[12])<<"This vaue is good!\n";
+    LOG( -1.0*sin(2.0));
+
 
     painter.drawImage(plotx, ploty, *image);
 

@@ -3,6 +3,13 @@
 #include <QAudioInput>
 #include <QAudioFormat>
 #include <QAudioDevice>
+//#include <QtMultimedia/QAudioDevice>
+#include <QtMultimedia/QMediaDevices>
+//#include <QtWidgets/QMessageBox>
+//#include <QtMultimedia/QAudioInput>
+//#include <QtMultimedia/QAudioOutput>
+//#include <QtMultimedia/QAudioSource>
+
 #include "spectrogram.h"
 #include "qspectrogram.h"
 #include "qcustomplot.h"
@@ -17,6 +24,7 @@
 MainWindow::MainWindow()
     : QMainWindow(new QWidget)
 {
+
     //menu and tool bars
     createActions();
     createActions2();
@@ -24,6 +32,7 @@ MainWindow::MainWindow()
     logPlot();
     plot2();
     plot();
+
     audioDevice();
 
     //messing around starter widget
@@ -35,7 +44,26 @@ MainWindow::MainWindow()
 }
 
 void MainWindow::audioDevice(){
+    //Figure out what this is doing
+    const QAudioDevice inputDevice = QMediaDevices::defaultAudioInput();
+    //List of Audio Devices
+    QList<QAudioDevice> devices;
 
+    /*
+    if (inputDevice.isNull()) {
+        QMessageBox::warning(nullptr, "audio",
+                             "There is no audio input device available.");
+        return -1;
+    }*/
+    m_audioInput = new QAudioInput(inputDevice, this);
+    LOG("Data from the microphone (" + inputDevice.description().toStdString() + ')');
+
+    QAudioFormat formatAudio;
+    formatAudio.setSampleRate(8000);
+    formatAudio.setChannelCount(1);
+    formatAudio.setSampleFormat(QAudioFormat::UInt8);
+
+    //m_audioInput.
 
 
    LOG("Testing \n");

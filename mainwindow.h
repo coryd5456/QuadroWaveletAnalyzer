@@ -15,6 +15,7 @@ class QMenu;
 class QPlainTextEdit;
 class QSessionManager;
 class QAudioInput;
+class QAudioSource;
 class QAudioFormat;
 QT_END_NAMESPACE
 
@@ -48,6 +49,9 @@ private:
     QSpinBox *numSelectSpinBox2;
     Spectrogram *spectrogram;
     QSpectrogram *spectrogramWidget;
+
+    QAudioInput *m_audioInput = nullptr;
+    QAudioSource *m_audioSource = nullptr;
 /*public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();*/
