@@ -14,6 +14,9 @@ protected:
 public:
     explicit audioData(const QAudioDevice &deviceInfo, QObject *parent = nullptr);
     float dataPoint =0;
+
+signals:
+    void newDataPoint();
 };
 
 #endif // AUDIODATA_H

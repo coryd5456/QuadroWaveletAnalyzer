@@ -8,6 +8,8 @@ audioData::audioData(const QAudioDevice &deviceInfo ,QObject *parent) : QIODevic
 LOG("OMG audioData class was called \n");
 }
 
+void newDataPoint(){}
+
 qint64 audioData::readData(char *data, qint64 maxSize)
 {
     Q_UNUSED(data);
@@ -17,9 +19,10 @@ qint64 audioData::readData(char *data, qint64 maxSize)
 
 qint64 audioData::writeData(const char *data, qint64 maxSize)
 {
-    LOG("OMG things happened \n");
-    LOG(qreal(uchar(*data) -128) / qreal(128));
-    dataPoint = qreal(uchar(*data) -128) / qreal(128);
+    //LOG("OMG things happened \n");
+    //LOG(qreal(uchar(*data) -128) / qreal(128));
+    dataPoint = (qreal(uchar(*data) -128) / qreal(128))*qreal(1000);
+    emit newDataPoint();
     //Code grabbed from QT audio example
     /*
     static const int resolution = 4;

@@ -196,10 +196,10 @@ void scalogram::dataBuffer(float dataPoint){
 
 void scalogram::paintEvent(QPaintEvent *) {
     QPainter painter(this);
-    counter++;
-    LOG("paint event: ");
-    LOG(counter);
-    LOG("\n");
+    //counter++;
+    //LOG("paint event: ");
+    //LOG(counter);
+    //LOG("\n");
     image = new QImage(plotwidth, plotheight, QImage::Format_RGB32);
     image->fill(backgroundColor);
     int interp_value = 0;
@@ -264,6 +264,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     //Need to pass a data point and a buffer vector
 
     dataBuffer(dataPoint);
+    /*
     LOG("\n\n");
     LOG("start of bucket \n");
     LOG(dataBucket2.size())<<"\n";
@@ -272,7 +273,7 @@ void scalogram::paintEvent(QPaintEvent *) {
 
     for(float v: dataBucket2){
         LOG(v)<<"This is a data point\n";
-    }
+    }*/
 
     /////////////
     /// \brief RTGaborTransform
@@ -296,7 +297,7 @@ void scalogram::paintEvent(QPaintEvent *) {
             //It's not grabbing the newest values, because there is an off by 1 error. m < N-M-1 only goes up to N-M-2.
         }
     }
-    LOG(W_MagSf[N-1][50])<<"This is the value going to screen\n";
+    //LOG(W_MagSf[N-1][50])<<"This is the value going to screen\n";
     //load in newest results
     for(int l = 0; l<L;l++){
         W_MagSf[N][l] = W_RTMagSf[l];

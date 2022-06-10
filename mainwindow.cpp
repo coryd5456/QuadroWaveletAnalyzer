@@ -124,7 +124,7 @@ void MainWindow::audioDevice(){
     //This starts the aquisition of data from the audio device using the write/read data function from audioData
     //need to add connection to data
     //need to fix my connect function.
-    connect(m_device, &audioData::open, this, &MainWindow::moveAudioDataToScalogram);
+    connect(m_device, &audioData::newDataPoint, this, &MainWindow::moveAudioDataToScalogram);
     m_audioSource->start(m_device);
     //Scalogram->dataPoint = m_device->dataPoint;
     //Scalogram->update();
