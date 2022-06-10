@@ -1,15 +1,17 @@
 #include <QtWidgets>
 #include <QAudio>
 #include <QAudioInput>
+#include <QAudioSource>
 #include <QAudioFormat>
 #include <QAudioDevice>
+#include <QTimer>
 //#include <QtMultimedia/QAudioDevice>
 #include <QtMultimedia/QMediaDevices>
 //#include <QtWidgets/QMessageBox>
 //#include <QtMultimedia/QAudioInput>
 //#include <QtMultimedia/QAudioOutput>
 //#include <QtMultimedia/QAudioSource>
-
+#include "audiodata.h"
 #include "spectrogram.h"
 #include "qspectrogram.h"
 #include "qcustomplot.h"
@@ -17,8 +19,10 @@
 #include "waveletMath.h"
 #include "mainwindow.h"
 #include "scalogram.h"
+#include "formantplot.h"
 #include <iostream>
 #include <math.h>
+#define PI 3.14159265
 #define LOG(x) std::cout << x
 #define dCUP(x) LOG(x)
 MainWindow::MainWindow()
@@ -34,20 +38,67 @@ MainWindow::MainWindow()
     plot();
 
     audioDevice();
-
+    //testData();
     //messing around starter widget
-    scalogram *Scalogram = new scalogram;
+
+
+    /*
+    formantPlot *FormantPlot = new formantPlot(Scalogram->F);
+    //Value transfer isn't happening need to figure out why to get this to work.
+    //Need to figure out how to transfer just one value before transfering all of them.
+    LOG("Value transfer testing:\n");
+    for(int i = 0; i< 1024 ;i++){
+        FormantPlot->F[i][0] = (int)(Scalogram->F[i][0]);
+        FormantPlot->F[i][1] = (int)(Scalogram->F[i][1]);
+        LOG((int)(Scalogram->F[i][1])) << "screaming AHHHH\n";
+    }
+    //Turn this into a button? Since it's a pop up anyway.
+    FormantPlot->show();*/
+
     QMainWindow::setCentralWidget(Scalogram);
+
 
     //status bar
     createStatusBar();
+
 }
+
+void MainWindow::testData(){
+    QTimer *timer = new QTimer(this);
+        connect(timer, &QTimer::timeout, this, &MainWindow::testData2);
+        timer->start(10);
+
+}
+
+void MainWindow::testData2(){
+
+    for (int n = 0; n < 1024; ++n)
+    {
+        //W_X[n] = 5.0 + 2.0*sin(300.0*PI*n/N + 10*PI*cos(5*2*PI*n/N)) + 3.0*cos(80.0*PI*n/N) + 40 * pow(W_exp,-1*pow((n-N/4)*2,2)) ;//+ 9.0*cos(16*PI*PI*n/N);
+        //LOG(W_X[n])<<"\n";
+        //W_X[n] = 5.0 + sinh(2.0*n/N);
+        //W_X[n] = 5.0 + 3.0*cos(4*PI*n/N + 12.0*cos(4*PI*n/N));
+        //Two Linear Chirps
+        MW_X[n] = 1.0+5.0*cos(300.0*PI*pow((double)(n)/(double)(1024),2.0) + 100.0*PI*((double)(n)/(double)(1024)))+5.0*cos(300.0*PI*pow((double)(n)/(double)(1024),2.0)) ;// + 5.0*cos(-300.0*PI*pow((double)(n)/(double)(N),3.0) + 600.0*PI*((double)(n)/(double)(N)));
+    }
+    Scalogram->dataPoint = MW_X[counter];
+    Scalogram->update();
+    LOG(MW_X[counter]) << "\n";
+    counter++;
+    counter = counter%1024;
+
+}
+
 
 void MainWindow::audioDevice(){
     //Figure out what this is doing
     const QAudioDevice inputDevice = QMediaDevices::defaultAudioInput();
     //List of Audio Devices
     QList<QAudioDevice> devices;
+
+    for(int i = 0; i< devices.length();i++){
+        LOG(devices[i].description().toStdString() +"\n");
+    }
 
     /*
     if (inputDevice.isNull()) {
@@ -63,10 +114,32 @@ void MainWindow::audioDevice(){
     formatAudio.setChannelCount(1);
     formatAudio.setSampleFormat(QAudioFormat::UInt8);
 
+    m_audioSource = new QAudioSource(inputDevice, formatAudio);
+    m_audioSource->setBufferSize(200);
+
+
+    m_device = new audioData(inputDevice, this);
+    m_device->open(QIODevice::WriteOnly);
+
+    //This starts the aquisition of data from the audio device using the write/read data function from audioData
+    //need to add connection to data
+    //need to fix my connect function.
+    connect(m_device, &audioData::open, this, &MainWindow::moveAudioDataToScalogram);
+    m_audioSource->start(m_device);
+    //Scalogram->dataPoint = m_device->dataPoint;
+    //Scalogram->update();
+
+
+
     //m_audioInput.
 
 
    LOG("Testing \n");
+}
+
+void MainWindow::moveAudioDataToScalogram(){
+    Scalogram->dataPoint = m_device->dataPoint;
+    Scalogram->update();
 }
 
 void MainWindow::plot(){

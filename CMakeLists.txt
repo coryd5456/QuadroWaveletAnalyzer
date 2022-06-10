@@ -31,6 +31,12 @@ set(PROJECT_SOURCES
             #specrograph.cpp
             #spectrograph.h
 
+            audiodata.cpp
+            audiodata.h
+
+            formantplot.cpp
+            formantplot.h
+
             spectrogram.cpp
             spectrogram.h
 
