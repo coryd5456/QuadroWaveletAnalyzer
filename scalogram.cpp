@@ -2,9 +2,16 @@
 #include <QStylePainter>
 #include <iostream>
 #include <cmath>
+#include <future>
+//#include <algorithm>
+//#include <execution>
 #include "waveletMath.h"
+#include "timer.h"
 #define PI 3.14159265
 #define LOG(x) std::cout << x
+
+
+static std::mutex mu;
 
 //////////////////////////////////
 /// \brief scalogram::scalogram
@@ -41,6 +48,7 @@
 
 scalogram::scalogram(QWidget *parent): QWidget(parent)
 {
+    //Note you must initialize all of your types they are just whatever they previously were in memory otherwise
     paddingX = 5;
     paddingY = 5;
     xlabelSpacing = 5;
@@ -58,6 +66,18 @@ scalogram::scalogram(QWidget *parent): QWidget(parent)
     waveformWidth = 100;
     spectrumWidth = 100;
     colorBarWidth = 50;
+
+
+    //reserves memory for our data bucket vector such that we have no copies from push_back onto it
+    dataBucket2.reserve(256);
+
+    //initializes gabor transform values such that they are only generated once and not each time the
+    //code is run.
+
+
+
+    init_ComplexExp( W_C,W_S);
+    init_Data(W_X);
 
 
 
@@ -108,29 +128,47 @@ void scalogram::resizeEvent(QResizeEvent *event) {
     Q_UNUSED(event);
 }
 //changes the pixel value to a linear interpolation from red high to blue low.
-void scalogram::simpleColorMap(float value, int &r, int &g, int &b){
+
+//I can use a map to pre-process my interpolated values.
+//I technically only need 256 values mapped due to 8-bit rgb
+//speed lost due to casting?
+
+void scalogram::simpleColorMap(float* value, int* r, int* g, int* b){
     //I make the smallest value red = 255 and the largest value blue 255
     // to get some inbetween I could make it a scaling from 0-255
     // red is 255 - interplated_value
     // blue is the interpolated value
 
+    //int max_value = 10000;
+    //int min_value = 0;
     //need to add functionality for if the value goes outside of the range.
-    int interpolated_value = 0;
-    if(value > max_value){
-        interpolated_value = 255;
-    } else if(value < min_value){
-        interpolated_value = 0;
+    //int interpolated_value = 0;
+
+
+    //std::lock_guard<std::mutex> lock(mu);
+    if(*value > 100){
+        //interpolated_value = 255;
+        *r = 0;
+        *b = 255;
+    } else if(*value < 0){
+        //interpolated_value = 0;
+        *r = 255;
+        *b = 0;
     } else{
-        interpolated_value = (int)((value - min_value) * (255/(max_value - min_value))) ;
+        //interpolated_value = (int)((*value - min_value) * (255/(max_value - min_value))) ;
+       *r = 255- (int)((*value - 0) * (255/(100)));
+       *b = (int)((*value - 0) * (255/(100)));
     }
 
 
-    r = 255 - interpolated_value;
-    g = 0; //counter%255;//for testing if the scalogram paint event is being triggered by data
-    b = interpolated_value;
+    //*r = 255 - interpolated_value;
+    *g = 0; //counter%255;//for testing if the scalogram paint event is being triggered by data
+    //*b = interpolated_value;
+
+
 }
 
-void scalogram::evalColormap(float value, int &r, int &g, int &b) {
+ void scalogram::evalColormap(float value, int &r, int &g, int &b) {
     int nRGB = colormap.size();
 
     QVector<float> RGB;
@@ -180,31 +218,41 @@ void scalogram::dataBuffer(float dataPoint){
     }*/
 
     //Code using vectors
+    //Switched from using "push_back" to "emplace_back" to avoid copying of data
+
     if(bufferCount < 256){
         //fill up to the innitial buffer size
-        dataBucket2.push_back(dataPoint);
+        dataBucket2.emplace_back(dataPoint);
      bufferCount++;
     }else{
         //remove the oldest element
         dataBucket2.erase(dataBucket2.begin());
         //add the newest data point to the dataBucket
-        dataBucket2.push_back(dataPoint);
+        dataBucket2.emplace_back(dataPoint);
     }
 
 
 }
 
 void scalogram::paintEvent(QPaintEvent *) {
+
     QPainter painter(this);
     //counter++;
     //LOG("paint event: ");
     //LOG(counter);
     //LOG("\n");
+    //Look into removing the amount of pre-defining and copying
     image = new QImage(plotwidth, plotheight, QImage::Format_RGB32);
     image->fill(backgroundColor);
+    /*
     int interp_value = 0;
     int r = 0, g =0, b =0;
     int ivalue = qRgb(12,255, 255);
+    */
+
+    interp_value = 0;
+    r = 0, g =0, b =0;
+    //ivalue = qRgb(12,255, 255);
 /*
     //Need to make a mirror mapping for the drawing of the image.
     for(int i = 0; i<plotwidth;i++
@@ -251,7 +299,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     /// Need to write a function to handle the buffer vector.
     ///
     /// Need to write a data steam function to test this out.
-
+    /*
     int N = BucketSize;// Size of the data bucket
     int L = NumFreq;// Number of frequncie to decompose into
     int M = 256;// Width of the window
@@ -261,6 +309,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     //    LOG("n: ") << 3 << "  W_S: " << W_S[3][4] << "\n";
     //}
     init_Data(W_X);
+    */
     //Need to pass a data point and a buffer vector
 
     dataBuffer(dataPoint);
@@ -281,13 +330,21 @@ void scalogram::paintEvent(QPaintEvent *) {
     ///
     ///
     if(dataBucket2.size() ==256){
+    {
+            LOG("Gaabor Transform computation\n");
+            Timer timer;
     RTGaborTransform(dataBucket2,W_C,W_S,W_RTMagSf,W_RTAngSf);
+        }
+    //RTGaborTransform()
 
     //The following code all assumes that my buffer is full.
 
     //Need to break up my code into multiple parts
 
     //first shift all of my results in my image back
+    {
+            LOG("shifting function\n");
+            Timer timer;
     for(int m = 0; m < N; m++){
         for(int l=0; l<L;l++){
             //The shifting isn't happening?
@@ -299,18 +356,40 @@ void scalogram::paintEvent(QPaintEvent *) {
     }
     //LOG(W_MagSf[N-1][50])<<"This is the value going to screen\n";
     //load in newest results
+
     for(int l = 0; l<L;l++){
         W_MagSf[N][l] = W_RTMagSf[l];
         W_AngSf[N][l] = W_RTAngSf[l];
 
     }
+
+        }
     //Now, I need to draw the formant lines:
     }
 
     //quick change values to find ridges
-    int G = 26;
-    int Error = 1;
+    //moved to header to not define on every run.
+    //int G = 26;
+    //int Error = 1;
     //go through the m's first, then the l's
+
+    //I don't need to recolor all of the data, just the latest row?
+
+    //I can improve performance with parallel processing via a parallel for loop since this is very indipendent operations
+    {
+        LOG("Coloring the data\n");
+        Timer timer;
+
+        /*
+
+        std::for_each(std::execution::par , std::begin(W_MagSf), std::end(W_MagSf), [&](int m){
+            std::lock_guard<std::mutex> guard(mu);
+            for(int l =0; l <L;l++){
+                simpleColorMap( &W_MagSf[m][l] ,&r,&g,&b);
+                image->setPixel(m, L-1-l, qRgb(r,g,b));
+            }
+        });*/
+
     for (int l = 0; l < L; l++)
         {
         //printf("[ ");
@@ -330,25 +409,37 @@ void scalogram::paintEvent(QPaintEvent *) {
                     LOG(W_MagSf[m][l])<< " at frequency: "<< l << "\n";
 
                 }*/
-            /*
-                if (m==600){
+
+               /* if (m==600){
                     LOG(2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l]))<<"values at "<< l <<"\n";
                 }*/
-                if(m >0 &&  (2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l) <Error && (2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l) > -Error && W_MagSf[m][l]>0.1){//0.14
-                    int ivalue = qRgb(0,255,0);
-                    image->setPixel(m, L-1-l, ivalue);
+
+                if(m >0 &&  (2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l) <Error && (2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l) > -Error ){//&& W_MagSf[m][l]>0.1){//0.14
+
+                    image->setPixel(m, L-1-l, qRgb(0,255,0));
                 }else{
-                    simpleColorMap(4.0*(max_value) * W_MagSf[m][l] ,r,g,b);
+                    float color =  100000* W_MagSf[m][l];
+                    simpleColorMap(&color ,&r,&g,&b);
                     //Testing if I have values for W_MagSf
 
                     //simpleColorMap(max_value ,r,g,b);
-                    int ivalue = qRgb(r,g,b);
-                    image->setPixel(m, L-1-l, ivalue);
+
+                    image->setPixel(m, L-1-l, qRgb(r,g,b));
                 }
+            //test_value = W_MagSf[m][l];
+            //m_Futures.push_back(std::async(simpleColorMap , &W_MagSf[m][l] ,&r,&g,&b));
+            //m_Futures.push_back(std::async(image->setPixel , m ,L-1-l,qRgb(r,g,b)));
+
+            //Testing if I have values for W_MagSf
+
+            //simpleColorMap(max_value ,r,g,b);
+
+            //image->setPixel(m, L-1-l, qRgb(r,g,b));
+
             }
     }
 
-
+    }
 
     //DFT();
     //////////////
@@ -419,7 +510,12 @@ void scalogram::paintEvent(QPaintEvent *) {
     //LOG(W_X[12])<<"This vaue is good!\n";
     //LOG( -1.0*sin(2.0));
 
-
+    {
+        LOG("Drawing the data\n");
+        Timer timer;
     painter.drawImage(plotx, ploty, *image);
+    }
+    LOG("\n");
+
 
 }

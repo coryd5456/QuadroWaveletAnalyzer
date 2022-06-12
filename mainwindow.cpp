@@ -22,6 +22,7 @@
 #include "formantplot.h"
 #include <iostream>
 #include <math.h>
+#include "timer.h"
 #define PI 3.14159265
 #define LOG(x) std::cout << x
 #define dCUP(x) LOG(x)
@@ -36,9 +37,11 @@ MainWindow::MainWindow()
     logPlot();
     plot2();
     plot();
+    {Timer timer;
+    //audioDevice();
 
-    audioDevice();
-    //testData();
+    testData();
+    }
     //messing around starter widget
 
 
@@ -66,7 +69,7 @@ MainWindow::MainWindow()
 void MainWindow::testData(){
     QTimer *timer = new QTimer(this);
         connect(timer, &QTimer::timeout, this, &MainWindow::testData2);
-        timer->start(10);
+        timer->start(1);
 
 }
 
@@ -83,7 +86,7 @@ void MainWindow::testData2(){
     }
     Scalogram->dataPoint = MW_X[counter];
     Scalogram->update();
-    LOG(MW_X[counter]) << "\n";
+    //LOG(MW_X[counter]) << "\n";
     counter++;
     counter = counter%1024;
 
@@ -110,7 +113,7 @@ void MainWindow::audioDevice(){
     LOG("Data from the microphone (" + inputDevice.description().toStdString() + ')');
 
     QAudioFormat formatAudio;
-    formatAudio.setSampleRate(8000);
+    formatAudio.setSampleRate(10000);
     formatAudio.setChannelCount(1);
     formatAudio.setSampleFormat(QAudioFormat::UInt8);
 

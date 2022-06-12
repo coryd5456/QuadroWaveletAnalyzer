@@ -5,6 +5,7 @@
 #include <vector>
 #include <complex>
 
+
 class Spectrogram {
 public:
     Spectrogram(unsigned int _sampleRate,

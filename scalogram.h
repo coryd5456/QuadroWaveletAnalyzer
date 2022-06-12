@@ -2,8 +2,11 @@
 #define SCALOGRAM_H
 
 #include <QWidget>
-//class QImage;
+#include <future>
+#include <algorithm>
 
+//class QImage;
+class parallel_policy;
 #define BucketSize  1024
 #define NumFreq  512
 #define GaborWidth  32
@@ -15,11 +18,24 @@ public:
     QSize minimumSizeHint() const override;
     QSize sizeHint() const override;
     void evalColormap(float value, int &r, int &g, int &b);
-    void simpleColorMap(float value, int &r, int &g, int &b);
+    static void simpleColorMap(float* value, int* r, int* g, int* b);
     int size = 50;
     int MaxSize = 1024;
     int counter = 0;
+    float test_value = 0.0;
+    int N = BucketSize;// Size of the data bucket
+    int L = NumFreq;// Number of frequncie to decompose into
+    int M = 256;// Width of the window
+    //quick change values to find ridges
+    int G = 26;
+    int Error = 1;
     float dataPoint = 0;
+
+    int interp_value = 0;
+    int r = 0, g =0, b =0;
+    int ivalue = 0;
+
+    std::vector<std::future<void>> m_Futures;
 
     float F[BucketSize][2];
 
@@ -50,6 +66,7 @@ private:
     void dataBuffer(float dataPoint);
     float dataBucket[256];
     std::vector<float> dataBucket2;
+
     int bufferCount = 0;
 
 

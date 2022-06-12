@@ -99,9 +99,9 @@ void init_ComplexExp(float W_C[][WNumFreq], float W_S[][WNumFreq]){
     {
         for (int l = 0; l < L; ++l)
         {
-
-            W_C[n][l] = cos(2*PI*(double)(n*l)/(float)(N));
-            W_S[n][l] = -1.0*sin(2*PI*(double)(n*l)/(float)(N));
+            //need to figure out how to jump by more than 1 frequency for each row of pixels.
+            W_C[n][l] = cos(2*PI*(double)(n*l)/(float)(4*N));
+            W_S[n][l] = -1.0*sin(2*PI*(double)(n*l)/(float)(4*N));
             //W_C[n][l] = cos(n*l);
             //W_S[n][l] = -1.0*std::sin(2.0);
             //LOG("(n,l): (") << n << ","<< l << ") " << "  C_G: " << W_S[n][l] << "\n";
@@ -205,6 +205,10 @@ void GaborTransform(float W_X[],float W_C[][WNumFreq], float W_S[][WNumFreq],flo
 ///
 ///
 /// First let's create a working model for 256 data points. powers of 2 because it compiles faster on microcontrollers
+///
+/// To improve performance:
+/// I can pre-process the bell curve the the gabor window function
+/// I can use the FFT recursion algorithm to reduce this to NLog(M) from N*M
 void RTGaborTransform(std::vector<float>& dataBucket,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]){
     // n is the time index
     // l is the frequency index
@@ -222,9 +226,10 @@ void RTGaborTransform(std::vector<float>& dataBucket,float W_C[][WNumFreq], floa
             }*/
             //The function is recieving the data buckets
             //currently M is acting as the scaling factor.
-            M = 64;
+            int S = 32;
+            double Sum[] = {0.0,0.0};
             for (int l = 0; l < L; l++)
-                {	double Sum[] = {0.0,0.0};
+                {	Sum[0] = 0.0; Sum[1] = 0.0;
                 //This for loop gives you the complex gabor coefficient
                 for (int n=0; n<dataBucket.size() ;n++)
                     {
@@ -233,14 +238,14 @@ void RTGaborTransform(std::vector<float>& dataBucket,float W_C[][WNumFreq], floa
                     //M/2 to shift the peak to the middle of the N data points
                     // since the data comes in groups of 256, this will compute for the 128th data point
                     // we are calling the 128th data point the current one to be displayed.
-                    Sum[0] = dataBucket[n]*pow(W_exp,-PI*pow(((float)(n-(128)))/(float)(M),2))*W_C[n][l] + Sum[0];
+                    Sum[0] = dataBucket[n]*pow(W_exp,-PI*pow(((float)(n-(128)))/(float)(S),2))*W_C[n][l] + Sum[0];
                     // integrating the imaginary part
-                    Sum[1] = dataBucket[n]*pow(W_exp,-PI*pow(((float)(n-(128)))/(float)(M),2))*W_S[n][l] + Sum[1];
+                    Sum[1] = dataBucket[n]*pow(W_exp,-PI*pow(((float)(n-(128)))/(float)(S),2))*W_S[n][l] + Sum[1];
 
                     }
                 //We are using the outer 2 for loops to go through each frequency
                 // The divide by N here is the dt of the integral
-                W_RTMagSf[l] = 2*sqrt(pow(Sum[0],2) + pow(Sum[1],2))/N;
+                W_RTMagSf[l] = 2*sqrt(pow(Sum[0],2) + pow(Sum[1],2))/dataBucket.size();
                 //values are being computed
                 //LOG(W_RTMagSf[l])<<"These are the values of the gabor transform\n";
                 W_RTAngSf[l] = atan(Sum[1]/Sum[0]);
