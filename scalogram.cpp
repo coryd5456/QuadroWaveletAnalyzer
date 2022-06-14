@@ -46,7 +46,7 @@ static std::mutex mu;
 ///
 /// Maybe I could add time events to this set up to get this done.
 
-scalogram::scalogram(QWidget *parent): QWidget(parent)
+scalogram::scalogram(QWidget *parent):  QOpenGLWidget(parent)
 {
     //Note you must initialize all of your types they are just whatever they previously were in memory otherwise
     paddingX = 5;
@@ -103,7 +103,7 @@ scalogram::scalogram(QWidget *parent): QWidget(parent)
 
 QSize scalogram::minimumSizeHint() const
 {
-    return QSize(size, size);
+    return QSize(size, size/2);
 }
 
 QSize scalogram::sizeHint() const
@@ -156,8 +156,8 @@ void scalogram::simpleColorMap(float* value, int* r, int* g, int* b){
         *b = 0;
     } else{
         //interpolated_value = (int)((*value - min_value) * (255/(max_value - min_value))) ;
-       *r = 255- (int)((*value - 0) * (255/(100)));
-       *b = (int)((*value - 0) * (255/(100)));
+       *r = 255- (int)((*value - 0) * (255/100));
+       *b = (int)((*value - 0) * (255/100));
     }
 
 
@@ -198,7 +198,7 @@ void scalogram::simpleColorMap(float* value, int* r, int* g, int* b){
 }
 
 
-void scalogram::dataBuffer(float dataPoint){
+void scalogram::dataBuffer(float* dataPoint){
 
     //Code using an array
     /*
@@ -222,13 +222,13 @@ void scalogram::dataBuffer(float dataPoint){
 
     if(bufferCount < 256){
         //fill up to the innitial buffer size
-        dataBucket2.emplace_back(dataPoint);
+        dataBucket2.emplace_back(*dataPoint);
      bufferCount++;
     }else{
         //remove the oldest element
         dataBucket2.erase(dataBucket2.begin());
         //add the newest data point to the dataBucket
-        dataBucket2.emplace_back(dataPoint);
+        dataBucket2.emplace_back(*dataPoint);
     }
 
 
@@ -242,6 +242,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     //LOG(counter);
     //LOG("\n");
     //Look into removing the amount of pre-defining and copying
+    //painter.setRenderHint(QPainter::Antialiasing);
     image = new QImage(plotwidth, plotheight, QImage::Format_RGB32);
     image->fill(backgroundColor);
     /*
@@ -251,7 +252,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     */
 
     interp_value = 0;
-    r = 0, g =0, b =0;
+    int r = 0, g =0, b =0;
     //ivalue = qRgb(12,255, 255);
 /*
     //Need to make a mirror mapping for the drawing of the image.
@@ -312,7 +313,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     */
     //Need to pass a data point and a buffer vector
 
-    dataBuffer(dataPoint);
+    dataBuffer(&dataPoint);
     /*
     LOG("\n\n");
     LOG("start of bucket \n");
@@ -333,7 +334,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     {
             LOG("Gaabor Transform computation\n");
             Timer timer;
-    RTGaborTransform(&dataBucket2,W_C,W_S,W_RTMagSf,W_RTAngSf);
+    RTGaborTransform(&dataBucket2,&GaborScale,W_C,W_S,W_RTMagSf,W_RTAngSf);
         }
     //RTGaborTransform()
 
@@ -390,11 +391,13 @@ void scalogram::paintEvent(QPaintEvent *) {
             }
         });*/
 
+    //I may be able to speed this up by storing the pixel data for the color map
+
     for (int l = 0; l < L; l++)
         {
         //printf("[ ");
         //LOG("[");
-        for (int m = 0; m < N; m++)
+        for (int m = 1; m < N; m++)
             {
                 //Finds the formants and plots the thing.
                 //I can optimize this by only doing the formants on the newest thing
@@ -413,12 +416,13 @@ void scalogram::paintEvent(QPaintEvent *) {
                /* if (m==600){
                     LOG(2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l]))<<"values at "<< l <<"\n";
                 }*/
-
-                if(m >0 &&  (2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l) <Error && (2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l) > -Error ){//&& W_MagSf[m][l]>0.1){//0.14
+                //removed m>0 requirement to just take m=0 column out of the loop
+                //I can do &m and &l and dereference them WTF lol
+                if( fabs((2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <Error && W_MagSf[m][l]>0.14){//0.14
 
                     image->setPixel(m, L-1-l, qRgb(0,255,0));
                 }else{
-                    float color =  100* W_MagSf[m][l];
+                    float color = 100.0* W_MagSf[m][l];
                     simpleColorMap(&color ,&r,&g,&b);
                     //Testing if I have values for W_MagSf
 

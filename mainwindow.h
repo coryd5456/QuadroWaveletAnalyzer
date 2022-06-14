@@ -5,6 +5,8 @@
 #include <QWidget>
 #include <QLabel>
 #include <QSpinBox>
+#include <QAbstractSlider>
+#include <QSlider>
 #include <QtCore/QIODevice> //This library contains code on how to read data from an Input/Output Device?
 #include "spectrogram.h"
 #include "qspectrogram.h"
@@ -39,6 +41,7 @@ private slots:
     void audioDevice();
     void testData2();
     void moveAudioDataToScalogram();
+    void changeTFResolution();
 
 
 
@@ -60,6 +63,7 @@ private:
     QSpinBox *numSelectSpinBox2;
     Spectrogram *spectrogram;
     QSpectrogram *spectrogramWidget;
+    QSlider *numGaborSlider;
 
     QAudioInput *m_audioInput = nullptr;
     QAudioSource *m_audioSource = nullptr;

@@ -21,7 +21,7 @@ qint64 audioData::writeData(const char *data, qint64 maxSize)
 {
     //LOG("OMG things happened \n");
 
-    dataPoint = (qreal(uchar(*data) -128) / qreal(128));
+    dataPoint = (qreal(uchar(*data) -128) / qreal(128))*1000.0;
     //LOG(dataPoint)<<"\n";
     emit newDataPoint();
     return 0;

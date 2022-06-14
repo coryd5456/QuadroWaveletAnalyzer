@@ -209,7 +209,7 @@ void GaborTransform(float W_X[],float W_C[][WNumFreq], float W_S[][WNumFreq],flo
 /// To improve performance:
 /// I can pre-process the bell curve the the gabor window function
 /// I can use the FFT recursion algorithm to reduce this to NLog(M) from N*M
-void RTGaborTransform(std::vector<float>* dataBucket,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]){
+void RTGaborTransform(std::vector<float>* dataBucket, float* GaborScale ,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]){
     // n is the time index
     // l is the frequency index
     // m is the center of the time window
@@ -226,10 +226,13 @@ void RTGaborTransform(std::vector<float>* dataBucket,float W_C[][WNumFreq], floa
             }*/
             //The function is recieving the data buckets
             //currently M is acting as the scaling factor.
-            float S = 40.0;
+            //float S = 40.0; //Original Gabor Scale
             float C_Sum = 0.0;
             float S_Sum = 0.0;
             float windowedData = 0.0;
+
+            //swapping n and l will improve speeds here, because I will have to compute over n less times?
+            //are these for loops communitive?
             for (int l = 0; l < L; l++)
                 {	C_Sum = 0.0; S_Sum = 0.0;
                 //This for loop gives you the complex gabor coefficient
@@ -240,7 +243,8 @@ void RTGaborTransform(std::vector<float>* dataBucket,float W_C[][WNumFreq], floa
                     //M/2 to shift the peak to the middle of the N data points
                     // since the data comes in groups of 256, this will compute for the 128th data point
                     // we are calling the 128th data point the current one to be displayed.
-                    windowedData = (*dataBucket)[n]*pow(W_exp,-PI*(((float)(n-(128)))/S)*(((float)(n-(128)))/S));
+
+                    windowedData = (*dataBucket)[n]*pow(W_exp,-PI*((((float)(n-(128)))/(*GaborScale))*(((float)(n-(128)))/(*GaborScale))));
                     C_Sum += windowedData *W_C[n][l];
                     // integrating the imaginary part
                     S_Sum += windowedData*W_S[n][l];

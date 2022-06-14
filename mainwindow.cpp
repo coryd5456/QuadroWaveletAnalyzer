@@ -4,6 +4,8 @@
 #include <QAudioSource>
 #include <QAudioFormat>
 #include <QAudioDevice>
+#include <QAbstractSlider>
+#include <QSlider>
 #include <QTimer>
 //#include <QtMultimedia/QAudioDevice>
 #include <QtMultimedia/QMediaDevices>
@@ -37,11 +39,11 @@ MainWindow::MainWindow()
     logPlot();
     plot2();
     plot();
-    {Timer timer;
+
     //audioDevice();
 
     testData();
-    }
+
     //messing around starter widget
 
 
@@ -143,6 +145,10 @@ void MainWindow::audioDevice(){
 void MainWindow::moveAudioDataToScalogram(){
     Scalogram->dataPoint = m_device->dataPoint;
     Scalogram->update();
+}
+
+void MainWindow::changeTFResolution(){
+     Scalogram->GaborScale = 256.0/1024.0 * (float)(numGaborSlider->value());
 }
 
 void MainWindow::plot(){
@@ -336,6 +342,12 @@ void MainWindow::createActions()
     connect(numSelectSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MainWindow::plot2);
 
+    numGaborSlider = new QSlider;
+    numGaborSlider->setRange(1,1024);
+    numGaborSlider->setOrientation(Qt::Horizontal);
+    fileToolBar->addWidget(numGaborSlider);
+    connect(numGaborSlider,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::changeTFResolution );
+
 
 //! [20]
 
@@ -408,6 +420,8 @@ void MainWindow::createActions2()
             this, &MainWindow::plot);
     connect(numSelectSpinBox2, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MainWindow::plot2);
+
+
 //! [20]
 
     //plotMenu->addSeparator();

@@ -19,6 +19,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt6 COMPONENTS PrintSupport REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
+
 
 set(PROJECT_SOURCES
     main.cpp
@@ -89,6 +91,7 @@ target_link_libraries(Quadro PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(Quadro PRIVATE Qt6::PrintSupport)
 target_link_libraries(Quadro PRIVATE Qt6::Multimedia)
 target_link_libraries(Quadro PUBLIC -lpulse -lpulse-simple -O3)
+target_link_libraries(Quadro PRIVATE Qt6::OpenGLWidgets)
 
 #set_target_properties(Quadro PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
