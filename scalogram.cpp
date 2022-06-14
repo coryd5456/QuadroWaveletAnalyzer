@@ -333,7 +333,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     {
             LOG("Gaabor Transform computation\n");
             Timer timer;
-    RTGaborTransform(dataBucket2,W_C,W_S,W_RTMagSf,W_RTAngSf);
+    RTGaborTransform(&dataBucket2,W_C,W_S,W_RTMagSf,W_RTAngSf);
         }
     //RTGaborTransform()
 
@@ -418,7 +418,7 @@ void scalogram::paintEvent(QPaintEvent *) {
 
                     image->setPixel(m, L-1-l, qRgb(0,255,0));
                 }else{
-                    float color =  100000* W_MagSf[m][l];
+                    float color =  100* W_MagSf[m][l];
                     simpleColorMap(&color ,&r,&g,&b);
                     //Testing if I have values for W_MagSf
 

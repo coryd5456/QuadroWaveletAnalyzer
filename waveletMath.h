@@ -17,4 +17,4 @@ void init_GaborWindow(float W_G[]);
 void init_Data(float W_X[]);
 void DFT();
 void GaborTransform(float W_X[],float W_C[][WNumFreq], float W_S[][WNumFreq],float W_MagSf[][WNumFreq],float W_AngSf[][WNumFreq]);
-void RTGaborTransform(std::vector<float>& dataBucket,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]);
+void RTGaborTransform(std::vector<float>* dataBucket,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]);

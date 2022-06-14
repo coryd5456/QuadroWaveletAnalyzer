@@ -90,18 +90,18 @@ void Test(){
   V = (g^{-k}Y_{k mod m})_{k=0}^{n-1};
   return U+V;
 }*/
-
+//I'm getting a segmentation fault when I try to run the code now.
 void init_ComplexExp(float W_C[][WNumFreq], float W_S[][WNumFreq]){
 // sets up e^{-j2PI ln/N}
 // where n is the time index
 // and where l is the frequency index
-    for (int n = 0; n < N; ++n)
+    for (int n = 0; n < 1024; n++)
     {
-        for (int l = 0; l < L; ++l)
+        for (int l = 0; l < 512; l++)
         {
             //need to figure out how to jump by more than 1 frequency for each row of pixels.
-            W_C[n][l] = cos(2*PI*(double)(n*l)/(float)(4*N));
-            W_S[n][l] = -1.0*sin(2*PI*(double)(n*l)/(float)(4*N));
+            W_C[n][l] = cos(2*PI*(double)(n*l)/(float)(N));
+            W_S[n][l] = -1.0*sin(2*PI*(double)(n*l)/(float)(N));
             //W_C[n][l] = cos(n*l);
             //W_S[n][l] = -1.0*std::sin(2.0);
             //LOG("(n,l): (") << n << ","<< l << ") " << "  C_G: " << W_S[n][l] << "\n";
@@ -209,7 +209,7 @@ void GaborTransform(float W_X[],float W_C[][WNumFreq], float W_S[][WNumFreq],flo
 /// To improve performance:
 /// I can pre-process the bell curve the the gabor window function
 /// I can use the FFT recursion algorithm to reduce this to NLog(M) from N*M
-void RTGaborTransform(std::vector<float>& dataBucket,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]){
+void RTGaborTransform(std::vector<float>* dataBucket,float W_C[][WNumFreq], float W_S[][WNumFreq],float W_RTMagSf[],float W_RTAngSf[]){
     // n is the time index
     // l is the frequency index
     // m is the center of the time window
@@ -226,32 +226,35 @@ void RTGaborTransform(std::vector<float>& dataBucket,float W_C[][WNumFreq], floa
             }*/
             //The function is recieving the data buckets
             //currently M is acting as the scaling factor.
-            int S = 32;
-            double Sum[] = {0.0,0.0};
+            float S = 40.0;
+            float C_Sum = 0.0;
+            float S_Sum = 0.0;
+            float windowedData = 0.0;
             for (int l = 0; l < L; l++)
-                {	Sum[0] = 0.0; Sum[1] = 0.0;
+                {	C_Sum = 0.0; S_Sum = 0.0;
                 //This for loop gives you the complex gabor coefficient
-                for (int n=0; n<dataBucket.size() ;n++)
+                for (int n=0; n<dataBucket->size() ;n++)
                     {
                     // integrating the real part
                     // I need to add in s(n-m) for a resolution scaling factor.
                     //M/2 to shift the peak to the middle of the N data points
                     // since the data comes in groups of 256, this will compute for the 128th data point
                     // we are calling the 128th data point the current one to be displayed.
-                    Sum[0] = dataBucket[n]*pow(W_exp,-PI*pow(((float)(n-(128)))/(float)(S),2))*W_C[n][l] + Sum[0];
+                    windowedData = (*dataBucket)[n]*pow(W_exp,-PI*(((float)(n-(128)))/S)*(((float)(n-(128)))/S));
+                    C_Sum += windowedData *W_C[n][l];
                     // integrating the imaginary part
-                    Sum[1] = dataBucket[n]*pow(W_exp,-PI*pow(((float)(n-(128)))/(float)(S),2))*W_S[n][l] + Sum[1];
+                    S_Sum += windowedData*W_S[n][l];
 
                     }
                 //We are using the outer 2 for loops to go through each frequency
                 // The divide by N here is the dt of the integral
-                W_RTMagSf[l] = 2*sqrt(pow(Sum[0],2) + pow(Sum[1],2))/dataBucket.size();
+                W_RTMagSf[l] = 2.0*sqrt(C_Sum*C_Sum + S_Sum*S_Sum)/dataBucket->size();
                 //values are being computed
                 //LOG(W_RTMagSf[l])<<"These are the values of the gabor transform\n";
-                W_RTAngSf[l] = atan(Sum[1]/Sum[0]);
+                W_RTAngSf[l] = atan(S_Sum/C_Sum);
 
                 }
-                W_RTMagSf[0] = W_RTMagSf[0]/2.0;
+                W_RTMagSf[0] /=2.0;
 }
 
 //So, for the ridglets just write a quick algorithm to find the maximums.
