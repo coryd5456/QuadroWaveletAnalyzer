@@ -14,7 +14,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Concurrent)
 
+find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt6 COMPONENTS PrintSupport REQUIRED)
@@ -37,11 +42,20 @@ set(PROJECT_SOURCES
             #specrograph.cpp
             #spectrograph.h
 
+            threadtask.cpp
+            threadtask.h
+
+            taskhandler.cpp
+            taskhandler.h
+
             timer.cpp
             timer.h
 
             audiodata.cpp
             audiodata.h
+
+            audiodatathread.cpp
+            audiodatathread.h
 
             formantplot.cpp
             formantplot.h
@@ -92,7 +106,8 @@ target_link_libraries(Quadro PRIVATE Qt6::PrintSupport)
 target_link_libraries(Quadro PRIVATE Qt6::Multimedia)
 target_link_libraries(Quadro PUBLIC -lpulse -lpulse-simple -O3)
 target_link_libraries(Quadro PRIVATE Qt6::OpenGLWidgets)
-
+target_link_libraries(Quadro PRIVATE Qt6::Concurrent)
+target_link_libraries(Quadro PRIVATE Qt6::Core)
 #set_target_properties(Quadro PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
 #    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

@@ -13,6 +13,16 @@
 //#include <QtMultimedia/QAudioInput>
 //#include <QtMultimedia/QAudioOutput>
 //#include <QtMultimedia/QAudioSource>
+
+//Adding threading capability
+//#include <thread>
+//#include <future>
+//#include <mutex>
+//#include <chrono>
+#include <QThread>
+
+#include "threadtask.h"
+#include "taskhandler.h"
 #include "audiodata.h"
 #include "spectrogram.h"
 #include "qspectrogram.h"
@@ -26,12 +36,40 @@
 #include <math.h>
 #include "timer.h"
 #define PI 3.14159265
+#define W_exp 2.7182818
 #define LOG(x) std::cout << x
 #define dCUP(x) LOG(x)
+
+std::mutex m;
+/////
+/// \brief MainWindow::MainWindow
+/// Project Tasks
+/// 1. add fft capability
+/// 2. add fgt/fwt capability
+/// 3. add in multithreading RTOS structure to sample data and compute it at the same time.
+/// The goal of this is to not screw up my sampling rate by having them both on the same thread
+///      -I need audio device sampling in 1 thread
+///         each sample needs to send to the buffer that I'm computing on.
+///     -Scalogram rendering in a different thread
+///
+/// 4. Where are things going in RAM, how much RAM do I need?
+/// 5. I need to make threading classes aparently
+///
+/// I think the problem I have going on is that the constructor has to finish constructing in order for the application to start.
+/// 1. to test this lets make a button that starts a thread printing to the console.(done)
+/// 2. my guess was correct. now to impliment a few things
+///     a. impliment a delta-time updator thread
+///     b. impliment a sampling thread
+///     c. impliment a computation thread
+/// ---After these are implimented if Gabor transform needs to be faster impliment async Futures threads
+///     d. Make a start recording and stop recording buttom
+///
+///
 MainWindow::MainWindow()
     : QMainWindow(new QWidget)
 {
-
+    QThread::currentThread()->setObjectName("Main Thread");
+    LOG("Main Thread name: ")<< QThread::currentThread() << "\n";
     //menu and tool bars
     createActions();
     createActions2();
@@ -39,12 +77,68 @@ MainWindow::MainWindow()
     logPlot();
     plot2();
     plot();
-
+    //status bar
+    createStatusBar();
     //audioDevice();
+    audioDevice2();
+    QMainWindow::setCentralWidget(Scalogram);
+    //set centralWidget prevents me from multithreading
+    //QObject::moveToThread: Widgets cannot be moved to a new thread
+    //QObject::moveToThread: Cannot move objects with a parent
+    //Scalogram->moveToThread(thread);
+    //Scalogram->gaboorThreadSetup(*thread);
 
-    testData();
+
+    //menu and tool bars
+    //createActions();
+    //createActions2();
+    //different main windows
+    //logPlot();
+    //plot2();
+    //plot();
+    //status bar
+    //createStatusBar();
+
+    //This is to try and just print data to the console as fast as possibe in parallel with whatever else I'm doing.
+    // t5 runs foo::bar() on object f
+    ////audioDevice();
+
+
+    //grabAudioData.join();
+    ////QMainWindow::setCentralWidget(Scalogram);
+    //auto a1 = std::async(std::launch::async,&MainWindow::threadDataRecord,this);
+    //auto a2 = std::async(std::launch::async,&MainWindow::threadScalogramPlot,this);
+    //a2.wait();
+    //QFuture<void> future = QtConcurrent::task(&MainWindow::audioDevice).spawn();
+    //testData();
 
     //messing around starter widget
+    //auto thread = new QThread;
+    //connect(thread,&QThread::started, this, &MainWindow::threadScalogramPlot);
+
+
+    //auto thread2 = new QThread;
+    //connect(thread2, &QThread::started, this, &MainWindow::MainThreadTasks);
+    //thread->start();
+    //thread2->start();
+
+
+    myTask = new TaskHandler();
+    connect(myTask, SIGNAL(numberChanged(int)),this, SLOT(onNumberChange(int)));
+
+    //threadTask* gaborTask = new threadTask(this);
+    //removing the parent put it on a different thread.
+
+    //gaborTask = new threadTask();
+    //gaborTask->gaboorThreadSetup(*thread);
+    //gaborTask->moveToThread(thread);
+    //thread->setObjectName("Gabor Thread 1");
+    thread3->setObjectName("Fuck yes");
+
+    //QObject::connect(gaborTask,&threadTask::imageComplete,Scalogram, &scalogram::imageRecived);
+
+    //I should have it just pause instead of quit
+    //QObject::connect(Scalogram,&scalogram::imageWorkComplete,thread,&QThread::quit);
 
 
     /*
@@ -60,12 +154,27 @@ MainWindow::MainWindow()
     //Turn this into a button? Since it's a pop up anyway.
     FormantPlot->show();*/
 
-    QMainWindow::setCentralWidget(Scalogram);
 
 
-    //status bar
-    createStatusBar();
 
+
+
+
+
+}
+
+
+
+void MainWindow::startThreadTest(){
+    myTask->Stop = false;
+    //myTask->start();
+    //thread->start();
+    thread3->start();
+}
+
+void MainWindow::stopThreadTest(){
+    myTask->Stop = true;
+    //myTask->~TaskHandler();
 }
 
 void MainWindow::testData(){
@@ -75,11 +184,16 @@ void MainWindow::testData(){
 
 }
 
+void MainWindow::onNumberChange(int i){
+    //Scalogram->update();
+    LOG(i)<<" Oh things are happening here" <<"\n";
+}
+
 void MainWindow::testData2(){
 
     for (int n = 0; n < 1024; ++n)
     {
-        //W_X[n] = 5.0 + 2.0*sin(300.0*PI*n/N + 10*PI*cos(5*2*PI*n/N)) + 3.0*cos(80.0*PI*n/N) + 40 * pow(W_exp,-1*pow((n-N/4)*2,2)) ;//+ 9.0*cos(16*PI*PI*n/N);
+        //MW_X[n] = 5.0 + 2.0*sin(600.0*PI*(double)(n)/1024.0 + 10.0*PI*cos(50.0*2.0*PI*(double)(n)/1024.0)) + 3.0*cos(800.0*PI*(double)(n)/1024.0) + 40.0 * pow(W_exp,-1*pow(((double)(n)-1024.0/4.0)*2.0,2.0)) ;//+ 9.0*cos(16*PI*PI*n/N);
         //LOG(W_X[n])<<"\n";
         //W_X[n] = 5.0 + sinh(2.0*n/N);
         //W_X[n] = 5.0 + 3.0*cos(4*PI*n/N + 12.0*cos(4*PI*n/N));
@@ -94,8 +208,34 @@ void MainWindow::testData2(){
 
 }
 
+void MainWindow::audioDevice2(){
+    audioTask = new audioDataThread();
+    audioTask->DoSetup(*thread3);
+    audioTask->moveToThread(thread3);
+    //Write new versions of these:
+    //connect(m_device, &audioData::newDataPoint, this, &MainWindow::moveAudioDataToScalogram);
+    //connect(m_device, &audioData::newCalcDataPoint,this,&MainWindow::moveDataBuffertoCalculator);
+    //These connections drastically increase the time for the data to be done by.
+    //I should move my buffer to audio task?
+    //get proper timing of the audio task
+    //NOTE on sample rates
+    // 1000: 1000us
+    // 2000:  500us
+    // 4000:  250us
+    // 8000:  125us
+    //16000:  62.5us
+    //
+    /// This connect at 4us extra should be more than enough time. Upper limit is 125000 sample rate
+    connect(audioTask, &audioDataThread::datapointReady, Scalogram, &scalogram::dataBuffer);
+    connect(audioTask, &audioDataThread::dataCalcReady,this,&MainWindow::moveDataBuffertoCalculator);
+}
+
+
 
 void MainWindow::audioDevice(){
+
+    //I think I need to move all of this to my audio data class, then move that to a thread with the worker model.
+    std::lock_guard<std::mutex> lk(m);
     //Figure out what this is doing
     const QAudioDevice inputDevice = QMediaDevices::defaultAudioInput();
     //List of Audio Devices
@@ -111,28 +251,49 @@ void MainWindow::audioDevice(){
                              "There is no audio input device available.");
         return -1;
     }*/
-    m_audioInput = new QAudioInput(inputDevice, this);
+    //m_audioInput = new QAudioInput(inputDevice, this);
+    m_audioInput = new QAudioInput(inputDevice);
     LOG("Data from the microphone (" + inputDevice.description().toStdString() + ')');
 
     QAudioFormat formatAudio;
-    formatAudio.setSampleRate(10000);
+    formatAudio.setSampleRate(4000);
     formatAudio.setChannelCount(1);
     formatAudio.setSampleFormat(QAudioFormat::UInt8);
 
     m_audioSource = new QAudioSource(inputDevice, formatAudio);
     m_audioSource->setBufferSize(200);
+    //m_audioSource->format();
 
 
-    m_device = new audioData(inputDevice, this);
+    //m_device = new audioData(inputDevice);
+    m_device = new audioData;
     m_device->open(QIODevice::WriteOnly);
+
+    //m_device->moveToThread(thread3);
 
     //This starts the aquisition of data from the audio device using the write/read data function from audioData
     //need to add connection to data
     //need to fix my connect function.
-    connect(m_device, &audioData::newDataPoint, this, &MainWindow::moveAudioDataToScalogram);
+    //whenever a new data point is recorded it runs this function
+    //how do I make a thread for the recording of data and a thread for the plotting of data on screen?
+    //moves the data to the buffer for every data point
+
+    //connect(thread, &QThread::started, m_device,&audioData::newDataPoint);
+    //m_device->moveToThread(thread3);
+
+    //connect(m_device, &audioData::newDataPoint, this, &MainWindow::moveAudioDataToScalogram);
+    //connect(m_device, &audioData::newCalcDataPoint,this,&MainWindow::moveDataBuffertoCalculator);
+
+    //connect(thread3,&QThread::started,m_device,&audioData::newDataPoint);
+    //thread3->start();
+
+    //m_audioInput->moveToThread(thread3);
+    //m_audioSource->moveToThread(thread3);
+    //m_device->moveToThread(thread3);
+
     m_audioSource->start(m_device);
-    //Scalogram->dataPoint = m_device->dataPoint;
-    //Scalogram->update();
+
+
 
 
 
@@ -142,9 +303,53 @@ void MainWindow::audioDevice(){
    LOG("Testing \n");
 }
 
-void MainWindow::moveAudioDataToScalogram(){
-    Scalogram->dataPoint = m_device->dataPoint;
+void MainWindow::moveDataBuffertoCalculator(){
+    //gaborTask->dataBuffer()
+    //{
+    //LOG("Thread starting?\n");
+    //Timer timer;
+    //gaborTask->dataBucket2 = Scalogram->dataBucket2;
+    //thread->start();
+    //}
     Scalogram->update();
+}
+
+void MainWindow::moveAudioDataToScalogram(){
+
+    //Need to turn this into a setter for the connect function.
+    Scalogram->dataBuffer(&m_device->dataPoint);
+    //LOG(m_device->dataPoint) <<"\n";
+    //The update function essentially is when to update the render
+    //does update also update the data?
+    //Scalogram->update();
+
+    //Scalogram->dataPoint = m_device->dataPoint;
+    //Scalogram->update();
+}
+
+void MainWindow::threadScalogramPlot(){
+    for (int i= 0;i<100;i++) {
+    //while(true){
+        //Scalogram->update();
+        //std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        //QThread::sleep(500);
+        //thread->QThread::sleep(20);
+        thread->msleep(500);
+
+        LOG("testing if this thread is working do you see it\n");
+
+    }
+}
+
+void MainWindow::threadDataRecord(){
+    //while (1) {
+    //connect(m_device, &audioData::newDataPoint, this, &MainWindow::moveAudioDataToScalogram);
+    //    LOG("threadCounter") << 1 <<"\n";
+    //}
+    //Scalogram->image = gaborTask->image;
+    //Scalogram->update();
+    thread->exit();
+
 }
 
 void MainWindow::changeTFResolution(){
@@ -329,6 +534,22 @@ void MainWindow::createActions()
     connect(saveAct, &QAction::triggered, this, &MainWindow::about);
     fileMenu->addAction(saveAct);
     fileToolBar->addAction(saveAct);
+
+    const QIcon startThread = QIcon::fromTheme("document-save", QIcon(":/images/QEE.png"));
+    QAction *startThreadAct = new QAction(startThread, tr("&StartThread"), this);
+    //saveAct->setShortcuts(QKeySequence::Save);
+    //saveAct->setStatusTip(tr("Save the document to disk"));
+    connect(startThreadAct, &QAction::triggered, this,&MainWindow::startThreadTest );
+    fileMenu->addAction(startThreadAct);
+    fileToolBar->addAction(startThreadAct);
+
+    const QIcon stopThread = QIcon::fromTheme("document-save", QIcon(":/images/QEE.png"));
+    QAction *stopThreadAct = new QAction(stopThread, tr("&StartThread"), this);
+    //saveAct->setShortcuts(QKeySequence::Save);
+    //saveAct->setStatusTip(tr("Save the document to disk"));
+    connect(stopThreadAct, &QAction::triggered, this,&MainWindow::stopThreadTest );
+    fileMenu->addAction(stopThreadAct);
+    fileToolBar->addAction(stopThreadAct);
 
     numSelectSpinBox = new QSpinBox;
     numSelectSpinBox->setRange(0, 20);

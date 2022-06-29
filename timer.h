@@ -10,9 +10,12 @@ public:
     ~Timer();
 
     void Stop();
+    void StartDemand();
+    void StopDemand();
 
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepointDemand;
 };
 
 #endif // TIMER_H

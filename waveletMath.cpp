@@ -2,6 +2,9 @@
 //#include <math.h>
 #include <cmath>
 #include <vector>
+//look into installing OpenGL Math libraries
+#include <glm/exponential.hpp>
+#include <glm/trigonometric.hpp>
 #include "waveletMath.h"
 #define LOG(x) std::cout << x <<std::endl
 
@@ -100,8 +103,8 @@ void init_ComplexExp(float W_C[][WNumFreq], float W_S[][WNumFreq]){
         for (int l = 0; l < 512; l++)
         {
             //need to figure out how to jump by more than 1 frequency for each row of pixels.
-            W_C[n][l] = cos(2*PI*(double)(n*l)/(float)(N));
-            W_S[n][l] = -1.0*sin(2*PI*(double)(n*l)/(float)(N));
+            W_C[n][l] = glm::cos(2*PI*(double)(n*l)/(float)(N));
+            W_S[n][l] = -1.0*glm::sin(2*PI*(double)(n*l)/(float)(N));
             //W_C[n][l] = cos(n*l);
             //W_S[n][l] = -1.0*std::sin(2.0);
             //LOG("(n,l): (") << n << ","<< l << ") " << "  C_G: " << W_S[n][l] << "\n";
@@ -127,12 +130,12 @@ void init_Data(float W_X[]){
 //data where n is the time index
     for (int n = 0; n < N; ++n)
     {
-        //W_X[n] = 5.0 + 2.0*sin(300.0*PI*n/N + 10*PI*cos(5*2*PI*n/N)) + 3.0*cos(80.0*PI*n/N) + 40 * pow(W_exp,-1*pow((n-N/4)*2,2)) ;//+ 9.0*cos(16*PI*PI*n/N);
+        W_X[n] = 5.0 + 2.0*sin(300.0*PI*(double)(n)/(double)(N)) + 3.0*cos(80.0*PI*(double)(n)/(double)(N)) + 40.0 * pow(W_exp,-1.0*pow(((double)(n)-(double)(N)/4.0)*2.0,2.0)) ;//+ 9.0*cos(16*PI*PI*n/N);
         //LOG(W_X[n])<<"\n";
         //W_X[n] = 5.0 + sinh(2.0*n/N);
         //W_X[n] = 5.0 + 3.0*cos(4*PI*n/N + 12.0*cos(4*PI*n/N));
         //Two Linear Chirps
-        W_X[n] = 1.0+5.0*cos(300.0*PI*pow((double)(n)/(double)(N),2.0) + 100.0*PI*((double)(n)/(double)(N)))+5.0*cos(300.0*PI*pow((double)(n)/(double)(N),2.0)) ;// + 5.0*cos(-300.0*PI*pow((double)(n)/(double)(N),3.0) + 600.0*PI*((double)(n)/(double)(N)));
+        //W_X[n] = 1.0+5.0*glm::cos(300.0*PI*glm::pow((double)(n)/(double)(N),2.0) + 100.0*PI*((double)(n)/(double)(N)))+5.0*glm::cos(300.0*PI*pow((double)(n)/(double)(N),2.0)) ;// + 5.0*cos(-300.0*PI*pow((double)(n)/(double)(N),3.0) + 600.0*PI*((double)(n)/(double)(N)));
     }
 }
 
@@ -174,15 +177,15 @@ void GaborTransform(float W_X[],float W_C[][WNumFreq], float W_S[][WNumFreq],flo
                 {
                 // integrating the real part
                 // I need to add in s(n-m) for a resolution scaling factor.
-                Sum[0] = W_X[n]*pow(W_exp,-PI*pow(((float)(n-m))/(float)(M),2))*W_C[n][l] + Sum[0];
+                Sum[0] = W_X[n]*glm::pow(W_exp,-PI*glm::pow(((float)(n-m))/(float)(M),2))*W_C[n][l] + Sum[0];
                 // integrating the imaginary part
-                Sum[1] = W_X[n]*pow(W_exp,-PI*pow(((float)(n-m))/(float)(M),2))*W_S[n][l] + Sum[1];
+                Sum[1] = W_X[n]*glm::pow(W_exp,-PI*glm::pow(((float)(n-m))/(float)(M),2))*W_S[n][l] + Sum[1];
 
                 }
             //We are using the outer 2 for loops to go through each frequency
             // The divide by N here is the dt of the integral
-            W_MagSf[m][l] = 2*sqrt(pow(Sum[0],2) + pow(Sum[1],2))/N;
-            W_AngSf[m][l] = atan(Sum[1]/Sum[0]);
+            W_MagSf[m][l] = 2*glm::sqrt(glm::pow(Sum[0],2) + glm::pow(Sum[1],2))/N;
+            W_AngSf[m][l] = glm::atan(Sum[1]/Sum[0]);
 
             }
             W_MagSf[m][0] = W_MagSf[m][0]/2.0;
@@ -244,7 +247,7 @@ void RTGaborTransform(std::vector<float>* dataBucket, float* GaborScale ,float W
                     // since the data comes in groups of 256, this will compute for the 128th data point
                     // we are calling the 128th data point the current one to be displayed.
 
-                    windowedData = (*dataBucket)[n]*pow(W_exp,-PI*((((float)(n-(128)))/(*GaborScale))*(((float)(n-(128)))/(*GaborScale))));
+                    windowedData = (*dataBucket)[n]*glm::pow(W_exp,-PI*((((float)(n-(128)))/(*GaborScale))*(((float)(n-(128)))/(*GaborScale))));
                     C_Sum += windowedData *W_C[n][l];
                     // integrating the imaginary part
                     S_Sum += windowedData*W_S[n][l];
@@ -252,10 +255,10 @@ void RTGaborTransform(std::vector<float>* dataBucket, float* GaborScale ,float W
                     }
                 //We are using the outer 2 for loops to go through each frequency
                 // The divide by N here is the dt of the integral
-                W_RTMagSf[l] = 2.0*sqrt(C_Sum*C_Sum + S_Sum*S_Sum)/dataBucket->size();
+                W_RTMagSf[l] = 2.0*glm::sqrt(C_Sum*C_Sum + S_Sum*S_Sum)/dataBucket->size();
                 //values are being computed
                 //LOG(W_RTMagSf[l])<<"These are the values of the gabor transform\n";
-                W_RTAngSf[l] = atan(S_Sum/C_Sum);
+                W_RTAngSf[l] = glm::atan(S_Sum/C_Sum);
 
                 }
                 W_RTMagSf[0] /=2.0;

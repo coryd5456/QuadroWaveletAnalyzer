@@ -3,13 +3,20 @@
 #include <iostream>
 #include <cmath>
 #include <future>
+#include <QThread>
+#include <QTimer>
 //#include <algorithm>
 //#include <execution>
+#include <glm/common.hpp> // abs
+#include <glm/ext/scalar_constants.hpp> // epsilon
+#include "qdebug.h"
 #include "waveletMath.h"
 #include "timer.h"
+#include <chrono>
 #define PI 3.14159265
 #define LOG(x) std::cout << x
 
+//I really need to get multithreading working
 
 static std::mutex mu;
 
@@ -75,9 +82,11 @@ scalogram::scalogram(QWidget *parent):  QOpenGLWidget(parent)
     //code is run.
 
 
-
     init_ComplexExp( W_C,W_S);
     init_Data(W_X);
+
+    image = new QImage(plotwidth, plotheight, QImage::Format_RGB32);
+    image->fill(backgroundColor);
 
 
 
@@ -200,6 +209,19 @@ void scalogram::simpleColorMap(float* value, int* r, int* g, int* b){
 
 void scalogram::dataBuffer(float* dataPoint){
 
+    //add in my timer here for how long it takes to get to my sample rate.
+    //include some sort of delta time.
+    /*
+    if(SampleCounter ==0){
+        bufferTimer.StartDemand();
+        SampleCounter = 1;
+    } else if(SampleCounter ==1){
+        bufferTimer.StopDemand();
+        SampleCounter =0;
+    }*/
+    //LOG(SampleCounter)<<"\n";
+    //SampleCounter = SampleCounter%2000;
+    //SampleCounter++;
     //Code using an array
     /*
     if(bufferCount < 256){
@@ -219,6 +241,10 @@ void scalogram::dataBuffer(float* dataPoint){
 
     //Code using vectors
     //Switched from using "push_back" to "emplace_back" to avoid copying of data
+    {
+        //LOG("Buffer Timer");
+        //Timer timer4;
+
 
     if(bufferCount < 256){
         //fill up to the innitial buffer size
@@ -231,7 +257,116 @@ void scalogram::dataBuffer(float* dataPoint){
         dataBucket2.emplace_back(*dataPoint);
     }
 
+    }
 
+
+}
+
+void scalogram::gaboorThreadSetup(QThread &cThread){
+    connect(&cThread, &QThread::started,this, &scalogram::gaborCalcWork);
+}
+void scalogram::imageThreadSetup(QThread &cThread){
+    connect(&cThread, &QThread::started,this, &scalogram::imageWork);
+}
+
+void scalogram::gaborCalcWork(){
+    /////////////I may have a mutex problem with the data bucket passing it by reference////////////
+    if(dataBucket2.size() ==256){
+    {
+            LOG("Gaabor Transform computation\n");
+            Timer timer;
+    RTGaborTransform(&dataBucket2,&GaborScale,W_C,W_S,W_RTMagSf,W_RTAngSf);
+        }
+    //RTGaborTransform()
+
+    //The following code all assumes that my buffer is full.
+
+    //Need to break up my code into multiple parts
+
+    //first shift all of my results in my image back
+    {
+            LOG("shifting function\n");
+            Timer timer;
+    for(int m = 0; m < N; m++){
+        for(int l=0; l<L;l++){
+            //The shifting isn't happening?
+            W_MagSf[m][l] = W_MagSf[m+1][l];//force values +0.0001
+            W_AngSf[m][l] = W_AngSf[m+1][l];
+            //The shifting is definitely working. It's just not grabbing the newest values.
+            //It's not grabbing the newest values, because there is an off by 1 error. m < N-M-1 only goes up to N-M-2.
+        }
+    }
+    //LOG(W_MagSf[N-1][50])<<"This is the value going to screen\n";
+    //load in newest results
+
+        for(int l = 0; l<L;l++){
+            W_MagSf[N][l] = W_RTMagSf[l];
+            W_AngSf[N][l] = W_RTAngSf[l];
+
+        }
+
+    }
+    //Now, I need to draw the formant lines:
+    }
+
+
+    /////////////////////From here on is the image work//////////////
+    image = new QImage(plotwidth, plotheight, QImage::Format_RGB32);
+    image->fill(backgroundColor);
+
+    interp_value = 0;
+    int r = 0, g =0, b =0;
+
+    //I can improve performance with parallel processing via a parallel for loop since this is very indipendent operations
+    {
+        LOG("Coloring the data\n");
+        Timer timer;
+
+    for (int l = 0; l < L; l++)
+        {
+        //printf("[ ");
+        //LOG("[");
+        for (int m = 1; m < N; m++)
+            {
+                //Finds the formants and plots the thing.
+                //I can optimize this by only doing the formants on the newest thing
+                //The 2PI and 1024 coorispond to normalizing my units based on the time and frequencies
+
+                if( std::fabs((2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <= Error && W_MagSf[m][l]>0.1){//0.14
+
+                    image->setPixel(m, L-1-l, qRgb(0,255,0));
+                }else{
+                    float color = 100.0* W_MagSf[m][l];
+                    simpleColorMap(&color ,&r,&g,&b);
+
+                    image->setPixel(m, L-1-l, qRgb(r,g,b));
+                }
+
+            }
+    }
+
+    }
+
+    update();
+
+}
+
+void scalogram::imageWork(){
+
+}
+
+//void scalogram::imageWorkComplete(){};
+
+void scalogram::imageRecived(QImage* cimage){
+    {
+        LOG("Testing the image Recieved Time\n");
+    Timer timer;
+    *image = *cimage;
+    LOG("I sent the image over\n");
+    update();
+    emit imageWorkComplete();
+    //this->update();
+    }
 }
 
 void scalogram::paintEvent(QPaintEvent *) {
@@ -251,8 +386,8 @@ void scalogram::paintEvent(QPaintEvent *) {
     int ivalue = qRgb(12,255, 255);
     */
 
-    interp_value = 0;
-    int r = 0, g =0, b =0;
+    ///interp_value = 0;
+    ///int r = 0, g =0, b =0;
     //ivalue = qRgb(12,255, 255);
 /*
     //Need to make a mirror mapping for the drawing of the image.
@@ -313,7 +448,7 @@ void scalogram::paintEvent(QPaintEvent *) {
     */
     //Need to pass a data point and a buffer vector
 
-    dataBuffer(&dataPoint);
+    //dataBuffer(&dataPoint);
     /*
     LOG("\n\n");
     LOG("start of bucket \n");
@@ -330,6 +465,8 @@ void scalogram::paintEvent(QPaintEvent *) {
     ///This section of code is to impliment a real time gabor transform.
     ///
     ///
+    ///
+
     if(dataBucket2.size() ==256){
     {
             LOG("Gaabor Transform computation\n");
@@ -358,13 +495,13 @@ void scalogram::paintEvent(QPaintEvent *) {
     //LOG(W_MagSf[N-1][50])<<"This is the value going to screen\n";
     //load in newest results
 
-    for(int l = 0; l<L;l++){
-        W_MagSf[N][l] = W_RTMagSf[l];
-        W_AngSf[N][l] = W_RTAngSf[l];
-
-    }
+        for(int l = 0; l<L;l++){
+            W_MagSf[N][l] = W_RTMagSf[l];
+            W_AngSf[N][l] = W_RTAngSf[l];
 
         }
+
+    }
     //Now, I need to draw the formant lines:
     }
 
@@ -377,6 +514,8 @@ void scalogram::paintEvent(QPaintEvent *) {
     //I don't need to recolor all of the data, just the latest row?
 
     //I can improve performance with parallel processing via a parallel for loop since this is very indipendent operations
+
+
     {
         LOG("Coloring the data\n");
         Timer timer;
@@ -399,6 +538,7 @@ void scalogram::paintEvent(QPaintEvent *) {
         //LOG("[");
         for (int m = 1; m < N; m++)
             {
+
                 //Finds the formants and plots the thing.
                 //I can optimize this by only doing the formants on the newest thing
                 //The 2PI and 1024 coorispond to normalizing my units based on the time and frequencies
@@ -418,7 +558,7 @@ void scalogram::paintEvent(QPaintEvent *) {
                 }*/
                 //removed m>0 requirement to just take m=0 column out of the loop
                 //I can do &m and &l and dereference them WTF lol
-                if( fabs((2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <Error && W_MagSf[m][l]>0.14){//0.14
+                if( std::fabs((2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <= Error && W_MagSf[m][l]>0.1){//0.14
 
                     image->setPixel(m, L-1-l, qRgb(0,255,0));
                 }else{
@@ -514,6 +654,8 @@ void scalogram::paintEvent(QPaintEvent *) {
     //LOG(W_X[12])<<"This vaue is good!\n";
     //LOG( -1.0*sin(2.0));
 
+
+    //qInfo()<<QThread::currentThread()<<" DRAWING THE IMAGE \n";
     {
         LOG("Drawing the data\n");
         Timer timer;

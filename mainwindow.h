@@ -7,11 +7,15 @@
 #include <QSpinBox>
 #include <QAbstractSlider>
 #include <QSlider>
+#include <QThread>
 #include <QtCore/QIODevice> //This library contains code on how to read data from an Input/Output Device?
 #include "spectrogram.h"
 #include "qspectrogram.h"
 #include "pulsethread.h"
 #include "scalogram.h"
+#include "taskhandler.h"
+#include "threadtask.h"
+#include "audiodatathread.h"
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -32,6 +36,18 @@ class MainWindow : public QMainWindow
 public:
     MainWindow();
     void testData();
+    void threadDataRecord();
+    void threadScalogramPlot();
+    void MainThreadTasks();
+    void startThreadTest();
+    void stopThreadTest();
+
+    QThread* thread = new QThread(this);
+    QThread* thread2 = new QThread(this);
+    QThread* thread3 = new QThread(this);
+    TaskHandler *myTask;
+public slots:
+    void onNumberChange(int);
 
 
 
@@ -39,9 +55,12 @@ private slots:
     void about();
     void logPlot();
     void audioDevice();
+    void audioDevice2();
     void testData2();
     void moveAudioDataToScalogram();
     void changeTFResolution();
+    void moveDataBuffertoCalculator();
+
 
 
 
@@ -55,6 +74,8 @@ private:
 //variables
 public:
     PulseThread *pulseThread;
+    threadTask* gaborTask;
+    audioDataThread* audioTask;
 private:
     scalogram *Scalogram = new scalogram;
     QLabel *numSelectLabel;

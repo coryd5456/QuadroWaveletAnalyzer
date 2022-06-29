@@ -1,48 +1,32 @@
-#ifndef SCALOGRAM_H
-#define SCALOGRAM_H
+#ifndef THREADTASK_H
+#define THREADTASK_H
 
-#include "timer.h"
-#include <QOpenGLWidget>
-#include <QWidget>
-#include <future>
-#include <algorithm>
+#include "qcolor.h"
+#include <QObject>
+
 #include <QThread>
-
-//class QImage;
-class parallel_policy;
+#include <iostream>
+#include <vector>
 #define BucketSize  1024
 #define NumFreq  512
 #define GaborWidth  32
-//adding OpenGL to the project
-//class scalogram : public QWidget
-class scalogram : public QOpenGLWidget
+
+class threadTask : public QObject
 {
     Q_OBJECT
 public:
-    scalogram(QWidget *parent = nullptr);
-    QSize minimumSizeHint() const override;
-    QSize sizeHint() const override;
-
+    explicit threadTask(QObject *parent = nullptr);
+    void DoSetup(QThread &cThread);
     //threading functions
     void gaboorThreadSetup(QThread &cThread);
     void imageThreadSetup(QThread &cThread);
-
-signals:
-    void imageWorkComplete();
-public slots:
-    void gaborCalcWork();
-    void imageWork();
-    void imageRecived(QImage* cimage);
-    //void setNewDataPoint(float*);
-
-
+    static void simpleColorMap(float* value, int* r, int* g, int* b);
 
 //public variables
 public:
-    Timer bufferTimer;
-    int SampleCounter =0;
-    void evalColormap(float value, int &r, int &g, int &b);
-    static void simpleColorMap(float* value, int* r, int* g, int* b);
+    //void evalColormap(float value, int &r, int &g, int &b);
+    int threadCounter =0;
+
     int size = 1060;
     int MaxSize = 1024;
     int counter = 0;
@@ -59,17 +43,12 @@ public:
     int r = 0, g =0, b =0;
     int ivalue = 0;
 
-    QImage *image;
-
-    std::vector<std::future<void>> m_Futures;
-
     float F[BucketSize][2];
 
     float W_C[BucketSize][NumFreq];//[width of dataset][number of frequencies]?
     float W_S[BucketSize][NumFreq];//[width of dataset][number of frequencies]?
     float W_X[BucketSize];//size of the data set
     float W_G[GaborWidth];//width of the window
-
 
     //Use the MagSf as full image.
     //Load Real Time values into it
@@ -81,12 +60,11 @@ public:
     float W_d = 0;
     void dataBuffer(float* dataPoint);
     float GaborScale = 64.0;
+
+    QImage *image;
     std::vector<float> dataBucket2;
 
-
-protected:
-    void paintEvent(QPaintEvent *event) override;
-    void resizeEvent(QResizeEvent *event) override;
+    //for the image
 //private variables
 private:
     QColor backgroundColor;
@@ -114,6 +92,15 @@ private:
 
     QVector<QVector<float> > colormap;
 
+signals:
+    void imageComplete(QImage* image);
+    void finished();
+
+public slots:
+    void DoWork();
+    void gaborCalcWork();
+    void imageWork();
+    void quit();
 };
 
-#endif // SCALOGRAM_H
+#endif // THREADTASK_H

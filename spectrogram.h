@@ -26,6 +26,8 @@ public:
     std::list<float> waveEnvelopeMax;
     std::list<float> timeList;
     std::vector<float> frequencyList;
+
+
 private:
     void removeFoot(unsigned int numLines);
     void addLine(float *fourierData,
