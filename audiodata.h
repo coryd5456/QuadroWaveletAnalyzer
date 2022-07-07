@@ -20,11 +20,13 @@ public:
     float dataPoint =0.0;
     void DoSetup(QThread &cThread);
 
+    float m_buffer[40];
+
 public slots:
 
 
 signals:
-    void newDataPoint();
+    void newDataPoint(float buffer[40]);
     void newCalcDataPoint();
 
 private:

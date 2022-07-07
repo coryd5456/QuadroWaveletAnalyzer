@@ -42,6 +42,8 @@ set(PROJECT_SOURCES
             #specrograph.cpp
             #spectrograph.h
 
+            Instrumentor.h
+
             threadtask.cpp
             threadtask.h
 

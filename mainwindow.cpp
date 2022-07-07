@@ -7,6 +7,7 @@
 #include <QAbstractSlider>
 #include <QSlider>
 #include <QTimer>
+#include "Instrumentor.h"
 //#include <QtMultimedia/QAudioDevice>
 #include <QtMultimedia/QMediaDevices>
 //#include <QtWidgets/QMessageBox>
@@ -65,16 +66,18 @@ std::mutex m;
 ///     d. Make a start recording and stop recording buttom
 ///
 ///
+
 MainWindow::MainWindow()
     : QMainWindow(new QWidget)
 {
+    InstrumentationTimer timer("Main Window");
     QThread::currentThread()->setObjectName("Main Thread");
     LOG("Main Thread name: ")<< QThread::currentThread() << "\n";
     //menu and tool bars
     createActions();
     createActions2();
     //different main windows
-    logPlot();
+    //logPlot();
     plot2();
     plot();
     //status bar
@@ -166,6 +169,7 @@ MainWindow::MainWindow()
 
 
 void MainWindow::startThreadTest(){
+    InstrumentationTimer timer("startThreadTest");
     myTask->Stop = false;
     //myTask->start();
     //thread->start();
@@ -209,6 +213,7 @@ void MainWindow::testData2(){
 }
 
 void MainWindow::audioDevice2(){
+    InstrumentationTimer timer("audio Device 2");
     audioTask = new audioDataThread();
     audioTask->DoSetup(*thread3);
     audioTask->moveToThread(thread3);
@@ -227,7 +232,7 @@ void MainWindow::audioDevice2(){
     //
     /// This connect at 4us extra should be more than enough time. Upper limit is 125000 sample rate
     connect(audioTask, &audioDataThread::datapointReady, Scalogram, &scalogram::dataBuffer);
-    connect(audioTask, &audioDataThread::dataCalcReady,this,&MainWindow::moveDataBuffertoCalculator);
+    //connect(audioTask, &audioDataThread::dataCalcReady,this,&MainWindow::moveDataBuffertoCalculator);
 }
 
 
@@ -315,6 +320,7 @@ void MainWindow::moveDataBuffertoCalculator(){
 }
 
 void MainWindow::moveAudioDataToScalogram(){
+    InstrumentationTimer timer("Moving Data");
 
     //Need to turn this into a setter for the connect function.
     Scalogram->dataBuffer(&m_device->dataPoint);
@@ -352,9 +358,7 @@ void MainWindow::threadDataRecord(){
 
 }
 
-void MainWindow::changeTFResolution(){
-     Scalogram->GaborScale = 256.0/1024.0 * (float)(numGaborSlider->value());
-}
+
 
 void MainWindow::plot(){
     //QSpinBox *numSelectSpinBox = qobject_cast<QSpinBox *>(sender());
@@ -504,6 +508,7 @@ void MainWindow::logPlot()
 void MainWindow::createActions()
 //! [17] //! [18]
 {
+    InstrumentationTimer timer("create Action");
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     QToolBar *fileToolBar = addToolBar(tr("File"));
     const QIcon newIcon = QIcon(":/QEE.png");
@@ -566,6 +571,7 @@ void MainWindow::createActions()
     numGaborSlider = new QSlider;
     numGaborSlider->setRange(1,1024);
     numGaborSlider->setOrientation(Qt::Horizontal);
+    numGaborSlider->setValue((int)(Scalogram->GaborScale));
     fileToolBar->addWidget(numGaborSlider);
     connect(numGaborSlider,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::changeTFResolution );
 
@@ -588,6 +594,7 @@ void MainWindow::createActions()
 void MainWindow::createActions2()
 //! [17] //! [18]
 {
+    InstrumentationTimer timer("create actions 2");
     QIcon::setFallbackSearchPaths(QIcon::fallbackSearchPaths() << ":images/icon-images.qrc");
 
     QMenu *plotMenu = menuBar()->addMenu(tr("&Plot"));
@@ -643,6 +650,58 @@ void MainWindow::createActions2()
             this, &MainWindow::plot2);
 
 
+    numGaborSliderScaling1 = new QSlider;
+    numGaborSliderScalingLabel1 = new QLabel(tr("Gabor Error"));
+    numGaborSliderScalingLabel1->setBuddy(numGaborSliderScaling1);
+    numGaborSliderScalingValue1 = new QLabel;
+    //numGaborSliderScalingLabel1->setBuddy(numGaborSliderScaling1);
+
+    numGaborSliderScaling1->setRange(1,1024);
+    numGaborSliderScaling1->setOrientation(Qt::Horizontal);
+    plotToolBar->addWidget(numGaborSliderScalingLabel1);
+    plotToolBar->addWidget(numGaborSliderScaling1);
+    plotToolBar->addWidget(numGaborSliderScalingValue1);
+    connect(numGaborSliderScaling1,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::changeTFRError );
+    connect(numGaborSliderScaling1,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::gaborSliderValueChanged1 );
+
+    numGaborSliderScaling2 = new QSlider;
+    numGaborSliderScalingLabel2 = new QLabel(tr("Gabor Amplitude"));
+    numGaborSliderScalingLabel2->setBuddy(numGaborSliderScaling2);
+    numGaborSliderScalingValue2 = new QLabel;
+    numGaborSliderScaling2->setRange(1,1024);
+    numGaborSliderScaling2->setOrientation(Qt::Horizontal);
+    plotToolBar->addWidget(numGaborSliderScalingLabel2);
+    plotToolBar->addWidget(numGaborSliderScaling2);
+    plotToolBar->addWidget(numGaborSliderScalingValue2);
+    connect(numGaborSliderScaling2,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::changeTFAmplitude );
+    connect(numGaborSliderScaling2,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::gaborSliderValueChanged2 );
+
+    numGaborSliderScaling3 = new QSlider;
+    numGaborSliderScalingLabel3 = new QLabel(tr("Gabor Threshold"));
+    numGaborSliderScalingLabel3->setBuddy(numGaborSliderScaling3);
+    numGaborSliderScalingValue3 = new QLabel;
+    numGaborSliderScaling3->setRange(1,1024);
+    numGaborSliderScaling3->setOrientation(Qt::Horizontal);
+    plotToolBar->addWidget(numGaborSliderScalingLabel3);
+    plotToolBar->addWidget(numGaborSliderScaling3);
+    plotToolBar->addWidget(numGaborSliderScalingValue3);
+    connect(numGaborSliderScaling3,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::changeTFValue );
+    connect(numGaborSliderScaling3,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::gaborSliderValueChanged3 );
+
+    numGaborSliderScaling4 = new QSlider;
+    numGaborSliderScalingLabel4 = new QLabel(tr("Gabor delta"));
+    numGaborSliderScalingLabel4->setBuddy(numGaborSliderScaling4);
+    numGaborSliderScalingValue4 = new QLabel;
+
+    numGaborSliderScaling4->setRange(1,1024);
+    numGaborSliderScaling4->setOrientation(Qt::Horizontal);
+    plotToolBar->addWidget(numGaborSliderScalingLabel4);
+    plotToolBar->addWidget(numGaborSliderScaling4);
+    plotToolBar->addWidget(numGaborSliderScalingValue4);
+    connect(numGaborSliderScaling4,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::changeTFValue2 );
+    connect(numGaborSliderScaling4,QOverload<int>::of(&QSlider::valueChanged),this, &MainWindow::gaborSliderValueChanged4 );
+
+
 //! [20]
 
     //plotMenu->addSeparator();
@@ -659,11 +718,48 @@ void MainWindow::createActions2()
 
 }
 //! [24]
+//!
+void MainWindow::changeTFResolution(){
+     Scalogram->GaborScale = 256.0f/1024.0f * (float)(numGaborSlider->value());
+}
+
+void MainWindow::changeTFRError(){
+     Scalogram->Error = 256.0f/1024.0f * (float)(numGaborSliderScaling1->value());
+}
+
+void MainWindow::changeTFAmplitude(){
+     Scalogram->Amplitude = 50.0f/1024.0f * (float)(numGaborSliderScaling2->value());
+}
+
+void MainWindow::changeTFValue(){
+     Scalogram->threshold = 0.5f/1024.0f * (float)(numGaborSliderScaling3->value());
+}
+
+void MainWindow::changeTFValue2(){
+     Scalogram->TFValue = 100.0f/1024.0f * (float)(numGaborSliderScaling4->value());
+}
+
+void MainWindow::gaborSliderValueChanged1(int Error){
+    numGaborSliderScalingValue1->setText(QString::number(Error));
+}
+
+void MainWindow::gaborSliderValueChanged2(int Amplitude){
+    numGaborSliderScalingValue2->setText(QString::number(Amplitude));
+}
+
+void MainWindow::gaborSliderValueChanged3(int Threshold){
+    numGaborSliderScalingValue3->setText(QString::number(Threshold));
+}
+
+void MainWindow::gaborSliderValueChanged4(int TFValue){
+    numGaborSliderScalingValue4->setText(QString::number(TFValue));
+}
 
 //! [32]
 void MainWindow::createStatusBar()
 //! [32] //! [33]
 {
+    InstrumentationTimer timer("Status Bar");
     statusBar()->showMessage(tr("Ready"));
 }
 

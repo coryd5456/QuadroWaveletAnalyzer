@@ -1,4 +1,5 @@
 #include "audiodatathread.h"
+#include "Instrumentor.h"
 #include "qdebug.h"
 #include <iostream>
 #define LOG(x) std::cout << x
@@ -32,6 +33,7 @@ void audioDataThread::DoSetup(QThread &cThread){
 
 void audioDataThread::DoWork()
 {
+    InstrumentationTimer timer("Worker Thread");
     qInfo()<<QThread::currentThread()<<" This is the thread SAMPLING is runing on \n";
     const QAudioDevice inputDevice = QMediaDevices::defaultAudioInput();
 
@@ -79,10 +81,11 @@ void audioDataThread::DoWork()
 
 }
 
-void audioDataThread::toEmit_datapointReady()
+void audioDataThread::toEmit_datapointReady(float m_buffer[])
 {
     //needs to also send the data recorded.
-    emit datapointReady(&m_device->dataPoint);
+    emit datapointReady(m_buffer);
+    //qInfo()<<m_audioSource->bufferSize()<<"\n";
     //LOG("ready to read data")<<"\n";
 }
 

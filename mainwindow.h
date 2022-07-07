@@ -58,8 +58,18 @@ private slots:
     void audioDevice2();
     void testData2();
     void moveAudioDataToScalogram();
+
     void changeTFResolution();
+    void changeTFAmplitude();
+    void changeTFRError();
+    void changeTFValue();
+    void changeTFValue2();
     void moveDataBuffertoCalculator();
+
+    void gaborSliderValueChanged1(int);
+    void gaborSliderValueChanged2(int);
+    void gaborSliderValueChanged3(int);
+    void gaborSliderValueChanged4(int);
 
 
 
@@ -84,7 +94,25 @@ private:
     QSpinBox *numSelectSpinBox2;
     Spectrogram *spectrogram;
     QSpectrogram *spectrogramWidget;
+
+
+    QLabel  *numGaborSliderScalingLabel1;
+    QLabel  *numGaborSliderScalingLabel2;
+    QLabel  *numGaborSliderScalingLabel3;
+    QLabel  *numGaborSliderScalingLabel4;
+
+    QLabel  *numGaborSliderScalingValue1;
+    QLabel  *numGaborSliderScalingValue2;
+    QLabel  *numGaborSliderScalingValue3;
+    QLabel  *numGaborSliderScalingValue4;
+
+
+
     QSlider *numGaborSlider;
+    QSlider *numGaborSliderScaling1;
+    QSlider *numGaborSliderScaling2;
+    QSlider *numGaborSliderScaling3;
+    QSlider *numGaborSliderScaling4;
 
     QAudioInput *m_audioInput = nullptr;
     QAudioSource *m_audioSource = nullptr;

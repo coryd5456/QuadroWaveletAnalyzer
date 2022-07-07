@@ -20,10 +20,10 @@ public:
 
 public slots:
     void DoWork();
-    void toEmit_datapointReady();
+    void toEmit_datapointReady(float m_buffer[]);
     void toEmit_dataCalcReady();
 signals:
-    void datapointReady(float *);
+    void datapointReady(float m_buffer[]);
     void dataCalcReady();
 
 //public variables
@@ -32,6 +32,7 @@ public:
     QAudioInput *m_audioInput = nullptr;
     QAudioSource *m_audioSource = nullptr;
     audioData *m_device = nullptr;
+    //float m_buffer[40];
 
 };
 

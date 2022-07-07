@@ -7,6 +7,7 @@
 #include <future>
 #include <algorithm>
 #include <QThread>
+#include <QMutex>
 
 //class QImage;
 class parallel_policy;
@@ -39,6 +40,7 @@ public slots:
 
 //public variables
 public:
+    QMutex Mu;
     Timer bufferTimer;
     int SampleCounter =0;
     void evalColormap(float value, int &r, int &g, int &b);
@@ -52,8 +54,11 @@ public:
     int M = 256;// Width of the window
     //quick change values to find ridges
     int G = 26;
-    float Error = 0.5;
-    float dataPoint = 0;
+    float threshold = 1.4f;
+    float Amplitude = 100.0f;
+    float Error = 20.0f;
+    float TFValue = 200.0f;
+    float dataPoint = 0.0f;
 
     int interp_value = 0;
     int r = 0, g =0, b =0;
@@ -79,7 +84,7 @@ public:
     float W_RTAngSf[NumFreq];//[number of frequencies]
     float W_Mfft[NumFreq];//Number of frequencies
     float W_d = 0;
-    void dataBuffer(float* dataPoint);
+    void dataBuffer(float dataPoint[]);
     float GaborScale = 64.0;
     std::vector<float> dataBucket2;
 

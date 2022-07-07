@@ -4,6 +4,7 @@
 //#include <QThread>
 #include <QApplication>
 #include <iostream>
+#include "Instrumentor.h"
 #define LOG(x) std::cout << x
 
 
@@ -20,9 +21,11 @@ int main(int argc, char *argv[])
     //std::thread grabAudioData(&MainWindow::threadScalogramPlot,&w);
     //w.resize(1118,612);
     //QThread* thread = new QThread;
+    Instrumentor::Get().BeginSession("Profile");
     MainWindow w;
     w.resize(1200,612);//1161
     w.show();
+    Instrumentor::Get().EndSession();
     //connect(thread,&QThread::)
     //thread->start(&threadTest);
 

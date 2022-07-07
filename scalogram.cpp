@@ -9,12 +9,14 @@
 //#include <execution>
 #include <glm/common.hpp> // abs
 #include <glm/ext/scalar_constants.hpp> // epsilon
+#include "Instrumentor.h"
 #include "qdebug.h"
 #include "waveletMath.h"
 #include "timer.h"
 #include <chrono>
-#define PI 3.14159265
+#define PI 3.14159265f
 #define LOG(x) std::cout << x
+#define Bucket_length 512
 
 //I really need to get multithreading working
 
@@ -76,7 +78,7 @@ scalogram::scalogram(QWidget *parent):  QOpenGLWidget(parent)
 
 
     //reserves memory for our data bucket vector such that we have no copies from push_back onto it
-    dataBucket2.reserve(256);
+    dataBucket2.reserve(Bucket_length);
 
     //initializes gabor transform values such that they are only generated once and not each time the
     //code is run.
@@ -207,7 +209,7 @@ void scalogram::simpleColorMap(float* value, int* r, int* g, int* b){
 }
 
 
-void scalogram::dataBuffer(float* dataPoint){
+void scalogram::dataBuffer(float dataPoint[]){
 
     //add in my timer here for how long it takes to get to my sample rate.
     //include some sort of delta time.
@@ -241,25 +243,28 @@ void scalogram::dataBuffer(float* dataPoint){
 
     //Code using vectors
     //Switched from using "push_back" to "emplace_back" to avoid copying of data
+    Mu.lock();
     {
         //LOG("Buffer Timer");
         //Timer timer4;
 
-
-    if(bufferCount < 256){
-        //fill up to the innitial buffer size
-        dataBucket2.emplace_back(*dataPoint);
-     bufferCount++;
-    }else{
-        //remove the oldest element
-        dataBucket2.erase(dataBucket2.begin());
-        //add the newest data point to the dataBucket
-        dataBucket2.emplace_back(*dataPoint);
+    for(int i = 0; i<40;i++){
+        if(bufferCount < Bucket_length){
+            //fill up to the innitial buffer size
+            dataBucket2.emplace_back(dataPoint[i]);
+        bufferCount++;
+        }else{
+            //remove the oldest element
+            dataBucket2.erase(dataBucket2.begin());
+            //add the newest data point to the dataBucket
+            dataBucket2.emplace_back(dataPoint[i]);
+        }
     }
 
     }
+    Mu.unlock();
 
-
+    this->update();
 }
 
 void scalogram::gaboorThreadSetup(QThread &cThread){
@@ -271,7 +276,7 @@ void scalogram::imageThreadSetup(QThread &cThread){
 
 void scalogram::gaborCalcWork(){
     /////////////I may have a mutex problem with the data bucket passing it by reference////////////
-    if(dataBucket2.size() ==256){
+    if(dataBucket2.size() ==Bucket_length){
     {
             LOG("Gaabor Transform computation\n");
             Timer timer;
@@ -332,11 +337,11 @@ void scalogram::gaborCalcWork(){
                 //I can optimize this by only doing the formants on the newest thing
                 //The 2PI and 1024 coorispond to normalizing my units based on the time and frequencies
 
-                if( std::fabs((2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <= Error && W_MagSf[m][l]>0.1){//0.14
-
+                if( std::fabs((TFValue*2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <= Error && W_MagSf[m][l]>threshold){//0.14
+                    //Add TFValue to gabor calc to reduce run time.
                     image->setPixel(m, L-1-l, qRgb(0,255,0));
                 }else{
-                    float color = 100.0* W_MagSf[m][l];
+                    float color = Amplitude* W_MagSf[m][l];//Add amplitude scaling to calculation to reduce run-time
                     simpleColorMap(&color ,&r,&g,&b);
 
                     image->setPixel(m, L-1-l, qRgb(r,g,b));
@@ -370,6 +375,8 @@ void scalogram::imageRecived(QImage* cimage){
 }
 
 void scalogram::paintEvent(QPaintEvent *) {
+    {
+    InstrumentationTimer timer("Paint Event");
 
     QPainter painter(this);
     //counter++;
@@ -467,8 +474,9 @@ void scalogram::paintEvent(QPaintEvent *) {
     ///
     ///
 
-    if(dataBucket2.size() ==256){
+    if(dataBucket2.size() ==Bucket_length){
     {
+            InstrumentationTimer timer2("Gabor Transform computation");
             LOG("Gaabor Transform computation\n");
             Timer timer;
     RTGaborTransform(&dataBucket2,&GaborScale,W_C,W_S,W_RTMagSf,W_RTAngSf);
@@ -481,6 +489,7 @@ void scalogram::paintEvent(QPaintEvent *) {
 
     //first shift all of my results in my image back
     {
+            //InstrumentationTimer timer3("Shifting Function");
             LOG("shifting function\n");
             Timer timer;
     for(int m = 0; m < N; m++){
@@ -517,6 +526,7 @@ void scalogram::paintEvent(QPaintEvent *) {
 
 
     {
+        //InstrumentationTimer timer4("Coloring the data");
         LOG("Coloring the data\n");
         Timer timer;
 
@@ -558,18 +568,15 @@ void scalogram::paintEvent(QPaintEvent *) {
                 }*/
                 //removed m>0 requirement to just take m=0 column out of the loop
                 //I can do &m and &l and dereference them WTF lol
-                if( std::fabs((2*PI*G*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <= Error && W_MagSf[m][l]>0.1){//0.14
+            if( std::fabs((25.6f*2.0f*PI*(W_AngSf[m][l] - W_AngSf[m-1][l])) - (float)(l)) <= Error && W_MagSf[m][l]>threshold){//0.14
 
-                    image->setPixel(m, L-1-l, qRgb(0,255,0));
-                }else{
-                    float color = 100.0* W_MagSf[m][l];
-                    simpleColorMap(&color ,&r,&g,&b);
-                    //Testing if I have values for W_MagSf
+                image->setPixel(m, L-1-l, qRgb(0,255,0));
+            }else{
+                float color = Amplitude*10.0* W_MagSf[m][l];
+                simpleColorMap(&color ,&r,&g,&b);
 
-                    //simpleColorMap(max_value ,r,g,b);
-
-                    image->setPixel(m, L-1-l, qRgb(r,g,b));
-                }
+                image->setPixel(m, L-1-l, qRgb(r,g,b));
+            }
             //test_value = W_MagSf[m][l];
             //m_Futures.push_back(std::async(simpleColorMap , &W_MagSf[m][l] ,&r,&g,&b));
             //m_Futures.push_back(std::async(image->setPixel , m ,L-1-l,qRgb(r,g,b)));
@@ -663,5 +670,5 @@ void scalogram::paintEvent(QPaintEvent *) {
     }
     LOG("\n");
 
-
+}
 }

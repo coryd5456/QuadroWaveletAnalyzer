@@ -247,7 +247,7 @@ void RTGaborTransform(std::vector<float>* dataBucket, float* GaborScale ,float W
                     // since the data comes in groups of 256, this will compute for the 128th data point
                     // we are calling the 128th data point the current one to be displayed.
 
-                    windowedData = (*dataBucket)[n]*glm::pow(W_exp,-PI*((((float)(n-(128)))/(*GaborScale))*(((float)(n-(128)))/(*GaborScale))));
+                    windowedData = (*dataBucket)[n]*glm::pow(W_exp,-PI*((((float)(n- (int)((dataBucket->max_size())/2) ))/(*GaborScale))*(((float)(n-(int)((dataBucket->max_size())/2)))/(*GaborScale))));
                     C_Sum += windowedData *W_C[n][l];
                     // integrating the imaginary part
                     S_Sum += windowedData*W_S[n][l];
