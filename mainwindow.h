@@ -9,6 +9,8 @@
 #include <QSlider>
 #include <QThread>
 #include <QtCore/QIODevice> //This library contains code on how to read data from an Input/Output Device?
+#include <QGridLayout>
+#include <QGroupBox>
 #include "spectrogram.h"
 #include "qspectrogram.h"
 #include "pulsethread.h"
@@ -95,6 +97,18 @@ private:
     Spectrogram *spectrogram;
     QSpectrogram *spectrogramWidget;
 
+
+    QGroupBox *GaborSliderGroup1 = new QGroupBox;
+    QGridLayout *GaborSliderLayout1 = new QGridLayout;
+
+    QGroupBox *GaborSliderGroup2 = new QGroupBox;
+    QGridLayout *GaborSliderLayout2 = new QGridLayout;
+
+    QGroupBox *GaborSliderGroup3 = new QGroupBox;
+    QGridLayout *GaborSliderLayout3 = new QGridLayout;
+
+    QGroupBox *GaborSliderGroup4 = new QGroupBox;
+    QGridLayout *GaborSliderLayout4 = new QGridLayout;
 
     QLabel  *numGaborSliderScalingLabel1;
     QLabel  *numGaborSliderScalingLabel2;

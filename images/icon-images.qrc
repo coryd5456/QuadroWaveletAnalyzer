@@ -7,5 +7,8 @@
         <file>paste.png</file>
         <file>save.png</file>
         <file>QEE.png</file>
+        <file>Pause.png</file>
+        <file>Play.png</file>
+        <file>Rec.png</file>
     </qresource>
 </RCC>

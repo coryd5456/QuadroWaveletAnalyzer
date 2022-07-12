@@ -280,6 +280,7 @@ void scalogram::gaborCalcWork(){
     {
             LOG("Gaabor Transform computation\n");
             Timer timer;
+
     RTGaborTransform(&dataBucket2,&GaborScale,W_C,W_S,W_RTMagSf,W_RTAngSf);
         }
     //RTGaborTransform()
@@ -479,7 +480,9 @@ void scalogram::paintEvent(QPaintEvent *) {
             InstrumentationTimer timer2("Gabor Transform computation");
             LOG("Gaabor Transform computation\n");
             Timer timer;
+    GMu.lock();
     RTGaborTransform(&dataBucket2,&GaborScale,W_C,W_S,W_RTMagSf,W_RTAngSf);
+    GMu.unlock();
         }
     //RTGaborTransform()
 

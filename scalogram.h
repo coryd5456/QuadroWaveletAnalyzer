@@ -41,6 +41,7 @@ public slots:
 //public variables
 public:
     QMutex Mu;
+    QMutex GMu;
     Timer bufferTimer;
     int SampleCounter =0;
     void evalColormap(float value, int &r, int &g, int &b);
@@ -54,10 +55,10 @@ public:
     int M = 256;// Width of the window
     //quick change values to find ridges
     int G = 26;
-    float threshold = 1.4f;
-    float Amplitude = 100.0f;
+    float threshold = 0.14f;
+    float Amplitude = 18.0f;
     float Error = 20.0f;
-    float TFValue = 200.0f;
+    float TFValue = 0.1f;
     float dataPoint = 0.0f;
 
     int interp_value = 0;
